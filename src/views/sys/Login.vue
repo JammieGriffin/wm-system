@@ -2,7 +2,8 @@
 import { ref } from "vue";
 import { FormInst, useMessage } from "naive-ui";
 import { Person, LockClosed } from "@vicons/ionicons5";
-import {ILoginModel} from "../../interface/sysModel"
+import { ILoginModel } from "../../interface/sysModel";
+import "../../scss/sys.scss";
 
 const message = useMessage();
 const loginForm = ref<FormInst | null>(null);
@@ -23,22 +24,22 @@ const loginRules = {
         trigger: blur,
     },
 };
-function onLogin(evt: MouseEvent){
-    loginForm.value?.validate((errors)=>{
+function onLogin(evt: MouseEvent) {
+    loginForm.value?.validate((errors) => {
         if (!errors) {
-            if(loginModel.value.checkDeal){
-                message.success('login');
+            if (loginModel.value.checkDeal) {
+                message.success("login");
             }
-        }else{
-            message.error('error');
+        } else {
+            message.error("error");
         }
-    })
+    });
 }
 </script>
 <template>
-    <div class="layout">
-        <div class="login-card">
-            <div class="login-form">
+    <div class="sys-layout">
+        <div class="sys-card">
+            <div class="sys-form">
                 <n-h2>用户登录</n-h2>
                 <n-form ref="loginForm" :model="loginModel" :rules="loginRules">
                     <n-form-item
@@ -52,7 +53,6 @@ function onLogin(evt: MouseEvent){
                             round
                             size="large"
                             placeholder="请输入账号"
-                            class="login-form-input"
                         >
                             <template #prefix>
                                 <n-icon style="margin-right: 10px">
@@ -73,7 +73,6 @@ function onLogin(evt: MouseEvent){
                             size="large"
                             show-password-on="click"
                             placeholder="请输入密码"
-                            class="login-form-input"
                         >
                             <template #prefix>
                                 <n-icon style="margin-right: 10px">
@@ -100,7 +99,12 @@ function onLogin(evt: MouseEvent){
                         >
                     </n-form-item>
                     <n-space justify="space-between">
-                        <n-button text type="info">用户注册</n-button>
+                        <n-button
+                            text
+                            type="info"
+                            @click="$router.push({ path: '/register' })"
+                            >用户注册</n-button
+                        >
                         <n-button text type="info">忘记密码</n-button>
                     </n-space>
                 </n-form>
@@ -109,38 +113,11 @@ function onLogin(evt: MouseEvent){
                 vertical
                 style="height: 100%; color: #f2f4f7"
             ></n-divider>
-            <div class="login-ikon">
-                <img src="../../assets/svg/login-ikon.svg" alt="" />
+            <div class="sys-ikon">
+                <img src="../../assets/svg/i-warehouse.svg" alt="" />
             </div>
         </div>
     </div>
 </template>
 <style scoped lang="scss">
-.layout {
-    width: 100vw;
-    height: 100vh;
-    background-color: #f2f4f7;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    .login-card {
-        width: 61.8%;
-        height: 70%;
-        border-radius: 20px;
-        background-color: #fff;
-        padding: 25px;
-        display: flex;
-        .login-form {
-            width: 66.6%;
-            padding: 40px 85px;
-            
-        }
-        .login-ikon {
-            img {
-                width: 100%;
-                height: 100%;
-            }
-        }
-    }
-}
 </style>
