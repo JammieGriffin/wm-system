@@ -9,11 +9,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "echarts": "^5.3.3",
     "vue": "^3.2.37",
     "vue-router": "^4.1.4"
   },
   "devDependencies": {
+    "@sicons/ionicons5": "^0.12.0",
+    "@vicons/carbon": "^0.12.0",
+    "@vicons/fluent": "^0.12.0",
     "@vicons/ionicons5": "^0.12.0",
+    "@vicons/material": "^0.12.0",
     "@vitejs/plugin-vue": "^3.0.3",
     "naive-ui": "^2.32.1",
     "sass": "^1.54.4",

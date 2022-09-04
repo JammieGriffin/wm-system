@@ -1,3 +1,5 @@
+import { Component } from "vue";
+
 export interface ILoginModel {
   account: String | null;
   pwd: String | null;
@@ -14,3 +16,4 @@ export interface IRegisterModel {
 export interface IRegisterPageCtrl {
   sendCode: Boolean;
 }
+

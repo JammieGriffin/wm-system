@@ -2,7 +2,55 @@ import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 
 const Login = () => import("../views/sys/Login.vue");
 const Register = () => import("../views/sys/Register.vue");
-const Home = () => import("../views/home/Home.vue");
+const Layout = () => import("../views/layouts/index.vue");
+const Console = () => import("../views/home/Console.vue");
+const Sapwm = () => import("../views/home/Sapwm.vue");
+const Pmc = () => import("../views/home/Pmc.vue");
+const Staff = () => import("../views/home/Staff.vue");
+const Checkin = () => import("../views/home/Staff.vue");
+
+const MainRoutes: Array<RouteRecordRaw> = [
+  {
+    path:"/console",
+    name:"console",
+    component: Console,
+    meta:{
+      title:"控制台"
+    }
+  },
+  {
+    path:"/sapwm",
+    name:"sapwm",
+    component: Sapwm,
+    meta:{
+      title:"仓库管理"
+    }
+  },
+  {
+    path:"/pmc",
+    name:"pmc",
+    component:Pmc,
+    meta:{
+      title:"物料管理"
+    }
+  },
+  {
+    path:"/staff",
+    name:"staff",
+    component:Staff,
+    meta:{
+      title:"仓库员工管理"
+    }
+  },
+  {
+    path:"/checkin",
+    name:"checkin",
+    component:Checkin,
+    meta:{
+      title:"进出库登记"
+    }
+  }
+];
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -24,13 +72,13 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
-    path: "/home",
-    name: "home",
-    component: Home,
+    path: "/",
+    name: "layout",
+    component: Layout,
     meta:{
-      title:'主页',
-      url:'/home'
-    }
+      url:'/'
+    },
+    children:[...MainRoutes]
   }
 ];
 const router = createRouter({
