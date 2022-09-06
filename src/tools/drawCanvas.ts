@@ -1,6 +1,6 @@
 import * as echarts from "echarts";
 import { IOdata, IRoseDiagramData } from "../interface/dataModel";
-function drawIOBar(el: HTMLElement, data: Array<IOdata>) {
+async function drawIOBar(el: HTMLElement, data: Array<IOdata>) {
   const canvas = echarts.init(el);
   const xData: Array<string> = data.map((item) => {
     return item.date;
@@ -41,11 +41,11 @@ function drawIOBar(el: HTMLElement, data: Array<IOdata>) {
     ],
   });
 }
-function drawRoseDiagram(el: HTMLElement, data: Array<IRoseDiagramData>) {
+async function drawRoseDiagram(el: HTMLElement, data: Array<IRoseDiagramData>) {
   const canvas = echarts.init(el);
   canvas.setOption({
     series: {
-      type: "pie",
+      type: 'pie',
       roseType: "area",
       data: data,
     },

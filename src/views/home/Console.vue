@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted } from "vue";
 import { NavigateNextOutlined as next } from "@vicons/material";
-import * as echarts from "echarts";
 import { IOdata, IOLogData, IRoseDiagramData } from "../../interface/dataModel";
 import { drawIOBar,drawRoseDiagram } from "../../tools/drawCanvas";
 

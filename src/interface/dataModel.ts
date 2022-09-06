@@ -14,3 +14,13 @@ export interface IRoseDiagramData{
   name:string;
   value:number;
 }
+export interface IWarehouseInfo{
+  id:string;
+  name:string;
+  status:{
+    value:string;
+    label:string;
+  };
+  type:string;
+  capacity:number;
+}
