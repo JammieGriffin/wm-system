@@ -24,3 +24,15 @@ export interface IWarehouseInfo{
   type:string;
   capacity:number;
 }
+
+export type IRenameForm = {
+  houseId:string;
+  houseOldName:string;
+  houseNewName:string;
+}
+export type INewHouseForm ={
+  houseName:string;
+  houseType:string;
+  capacity:number;
+  anotherType?:string;
+}

@@ -5,6 +5,7 @@ const Register = () => import("../views/sys/Register.vue");
 const Layout = () => import("../views/layouts/index.vue");
 const Console = () => import("../views/home/Console.vue");
 const Sapwm = () => import("../views/home/Sapwm.vue");
+const Sapwm_detial = () => import ("../views/children/SapwmDetial.vue");
 const Pmc = () => import("../views/home/Pmc.vue");
 const Staff = () => import("../views/home/Staff.vue");
 const Checkin = () => import("../views/home/Staff.vue");
@@ -24,6 +25,14 @@ const MainRoutes: Array<RouteRecordRaw> = [
     component: Sapwm,
     meta:{
       title:"仓库管理"
+    }
+  },
+  {
+    path:'/sapwm/detial/:id',
+    name:'sapwmDetial',
+    component: Sapwm_detial,
+    meta:{
+      title:'仓库详情'
     }
   },
   {
