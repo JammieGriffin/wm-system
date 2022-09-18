@@ -1,5 +1,5 @@
 import * as echarts from "echarts";
-import { IOdata, IRoseDiagramData } from "../interface/dataModel";
+import { IBaseChartData, IOdata } from "../interface/dataModel";
 async function drawIOBar(el: HTMLElement, data: Array<IOdata>) {
   const canvas = echarts.init(el);
   const xData: Array<string> = data.map((item) => {
@@ -26,30 +26,47 @@ async function drawIOBar(el: HTMLElement, data: Array<IOdata>) {
         name: "入库",
         type: "bar",
         data: inData,
-        label:{
-          show:true,
-        }
+        label: {
+          show: true,
+        },
       },
       {
         name: "出库",
         type: "bar",
         data: outData,
-        label:{
-          show:true,
-        }
+        label: {
+          show: true,
+        },
       },
     ],
   });
 }
-async function drawRoseDiagram(el: HTMLElement, data: Array<IRoseDiagramData>) {
+async function drawRoseDiagram(el: HTMLElement, data: Array<IBaseChartData>) {
   const canvas = echarts.init(el);
   canvas.setOption({
     series: {
-      type: 'pie',
+      type: "pie",
       roseType: "area",
       data: data,
     },
   });
 }
 
-export { drawIOBar, drawRoseDiagram };
+async function drawCapacityUsage(el: HTMLElement, data: Array<IBaseChartData>) {
+  const canvas = echarts.init(el);
+  canvas.setOption({
+    series: [
+      {
+        type: "pie",
+        data: data,
+        radius: ["30%", "70%"],
+        label: {
+          show: true,
+          formatter: "{b}\n{c}单位",
+        },
+        labelLine: { show: true },
+      },
+    ],
+  });
+}
+export { drawIOBar, drawRoseDiagram, drawCapacityUsage };
