@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted } from "vue";
 import { NavigateNextOutlined as next } from "@vicons/material";
-import { IOdata, IOLogData, IRoseDiagramData } from "../../interface/dataModel";
+import { IOdata, IOLogData, IBaseChartData } from "../../interface/dataModel";
 import { drawIOBar,drawRoseDiagram } from "../../tools/drawCanvas";
 
 const statisticData = reactive({
@@ -114,7 +114,7 @@ const ioLogData: Array<IOLogData> = [
     principal: "张三",
   },
 ];
-const warehouseData: Array<IRoseDiagramData> = [
+const warehouseData: Array<IBaseChartData> = [
   {
     name: "东区1号仓库",
     value: 4300,
@@ -136,9 +136,9 @@ const warehouseData: Array<IRoseDiagramData> = [
     value: 3100,
   },
 ];
-onMounted(() => {
-  drawIOBar(ioChartRef.value, ioData);
-  drawRoseDiagram(KWordsChartRef.value,warehouseData)
+onMounted(async () => {
+  await drawIOBar(ioChartRef.value, ioData);
+  await drawRoseDiagram(KWordsChartRef.value,warehouseData)
 });
 </script>
 <template>
