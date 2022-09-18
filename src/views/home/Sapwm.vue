@@ -8,7 +8,7 @@ import {
 } from "../../interface/dataModel";
 import { reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { useMessage, useDialog, FormInst } from "naive-ui";
+import { useMessage, useDialog, FormInst, FormItemRule } from "naive-ui";
 import { objectToString } from "@vue/shared";
 
 const router = useRouter();
@@ -191,6 +191,7 @@ const newHouseForm: INewHouseForm = reactive({
   houseName: "",
   houseType: "",
   capacity: 0,
+  anotherType: "",
 });
 let isAnotherType = ref<boolean>(false);
 const houseTypeOptions = [
@@ -211,6 +212,37 @@ const houseTypeOptions = [
     value: "其它类型",
   },
 ];
+const newHouseFormRules = {
+  houseName: {
+    required: true,
+    message: "请输入仓库名称",
+    trigger: blur,
+  },
+  houseType: {
+    required: true,
+    validator(rule: FormItemRule, value: string) {
+      if (!newHouseForm.houseType) {
+        return new Error("请选择仓库类型");
+      } else {
+        if (newHouseForm.houseType === "其它类型") {
+          if (!newHouseForm.anotherType) {
+            return new Error("请输入仓库类型名称");
+          }
+        }
+      }
+    },
+    trigger: blur,
+  },
+  capacity: {
+    required: true,
+    validator(rule: FormItemRule, value: number) {
+      if (value === 0) {
+        return new Error("请输入仓库容量");
+      }
+    },
+    trigger: blur,
+  },
+};
 watch(
   () => newHouseForm.houseType,
   (type) => {
@@ -222,7 +254,29 @@ watch(
     }
   }
 );
-function createNewHouse() {}
+function createNewHouse() {
+  newHouseFormRef.value?.validate((err) => {
+    if (!err) {
+      const { houseName, capacity } = newHouseForm;
+      let houseType: string =
+        newHouseForm.houseType === "其它类型"
+          ? newHouseForm.anotherType
+          : newHouseForm.houseType;
+      const newHouse: IWarehouseInfo = {
+        id: "74c6ad82b",
+        name: houseName,
+        status: {
+          value: "未运行",
+          label: "default",
+        },
+        type: houseType,
+        capacity: capacity,
+      };
+      warehouseInfo.push(newHouse);
+      newHouseModal.value = false;
+    }
+  });
+}
 function closeNewHouseModal() {
   newHouseForm.houseType = "";
   newHouseForm.houseName = "";
@@ -316,27 +370,30 @@ function closeNewHouseModal() {
   </n-modal>
   <n-modal v-model:show="newHouseModal" @after-leave="closeNewHouseModal">
     <n-card style="width: 30vw" title="新建仓库">
-      <n-form :model="newHouseForm" ref="newHouseFormRef">
-        <n-form-item paht="houseName" label="仓库名称">
+      <n-form
+        :model="newHouseForm"
+        :rules="newHouseFormRules"
+        ref="newHouseFormRef"
+      >
+        <n-form-item path="houseName" label="仓库名称">
           <n-input
             v-model:value="newHouseForm.houseName"
             placeholder="请输入仓库名称"
           />
         </n-form-item>
         <n-form-item path="houseType" label="仓库类型">
-            <n-select
-              v-model:value="newHouseForm.houseType"
-              :options="houseTypeOptions"
-              placeholder="请选择仓库类型"
-              style="width: 100%"
-              :class="{ anotherType: isAnotherType }"
-            />
-            <n-input
-              v-model:value="newHouseForm.anotherType"
-              placeholder="请输入类型名称"
-              v-if="isAnotherType"
-            />
-
+          <n-select
+            v-model:value="newHouseForm.houseType"
+            :options="houseTypeOptions"
+            placeholder="请选择仓库类型"
+            style="width: 100%"
+            :class="{ anotherType: isAnotherType }"
+          />
+          <n-input
+            v-model:value="newHouseForm.anotherType"
+            placeholder="请输入类型名称"
+            v-if="isAnotherType"
+          />
         </n-form-item>
         <n-form-item path="capacity" label="仓库容量">
           <n-input-number
