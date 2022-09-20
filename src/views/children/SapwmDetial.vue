@@ -348,7 +348,7 @@ function openModal(action: string): void {
       break;
     default:
       isTrading.value = true;
-      isPersonnelChange.value = true;
+      isPersonnelChange.value = false;
       break;
   }
   updateInfoModal.value = true;
@@ -514,7 +514,11 @@ function closeModal(): void {
             </n-input-number>
           </n-form-item>
           <n-form-item label="仓库面积">
-            <n-input-number v-model:value="detialInfo.houseArea" />
+            <n-input-number v-model:value="detialInfo.houseArea" style="width:100%">
+              <template #suffix>
+                <span style="color: #afb0b2">平方米</span>
+              </template>
+            </n-input-number>
           </n-form-item>
           <n-form-item label="仓库状态">
             <n-select v-model:value="detialInfo.status.value" :options="[]" />

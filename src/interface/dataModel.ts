@@ -10,7 +10,7 @@ export interface IOLogData{
   time:string;
   principal:string;
 }
-export interface IRoseDiagramData{
+export interface IBaseChartData{
   name:string;
   value:number;
 }
@@ -35,4 +35,29 @@ export type INewHouseForm ={
   houseType:string;
   capacity:number;
   anotherType?:string;
+}
+export interface IHouseDetialInfo {
+  houseName: string;
+  houseId: string;
+  houseAddr: string;
+  houseType: string;
+  capacity: number;
+  status:{
+    label: string;
+    value: string;
+  };
+  houseArea: number;
+  houseAdmin: string;
+  houseStaff: Array<string>;
+}
+export interface IQuery {
+  type: string | null;
+  keyWord: string;
+  startDate: string;
+  endDate: string;
+}
+export interface IODetialData extends IOLogData {
+  logID: string;
+  count: number;
+  remark: string;
 }
