@@ -8,12 +8,12 @@ export interface ILoginModel {
 export interface IRegisterModel {
   account: String | null;
   pwd: String | null;
+  usrName: string | null;
   repwd: String | null;
-  email: String | null;
-  captcha: String | null;
-  checkDeal: Boolean;
+  phone: String | null;
+  sex: string | null;
 }
 export interface IRegisterPageCtrl {
-  sendCode: Boolean;
+  checkDeal: Boolean;
 }
 
