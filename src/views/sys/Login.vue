@@ -1,12 +1,16 @@
 <script lang="ts" setup>
 import { ref } from "vue";
+import { useRouter } from "vue-router";
 import { FormInst, useMessage } from "naive-ui";
 import { Person, LockClosed } from "@vicons/ionicons5";
 import { ILoginModel } from "../../interface/sysModel";
 import { baseAxios } from "../../const";
 import "../../scss/sys.scss";
+import { useUsrstore } from "../../store";
 
 const message = useMessage();
+const store = useUsrstore();
+const router = useRouter();
 const loginForm = ref<FormInst | null>(null);
 const loginModel = ref<ILoginModel>({
   account: null,
@@ -35,8 +39,16 @@ function onLogin(evt: MouseEvent) {
             pwd: loginModel.value.pwd,
           })
           .then((res) => {
-            console.log(res)
+            if (res.data.success) {
+              store.$state.token = res.data.token;
+              store.$state.usr = res.data.result;
+              router.push({path:"/console"});
+            }else{
+              message.error(res.data.message)
+            }
           });
+      }else{
+        message.error("请勾选《用户服务协议》");
       }
     } else {
       message.error("error");
@@ -51,13 +63,7 @@ function onLogin(evt: MouseEvent) {
         <n-h2>用户登录</n-h2>
         <n-form ref="loginForm" :model="loginModel" :rules="loginRules">
           <n-form-item path="account" label="账号" :show-require-mark="false">
-            <n-input
-              v-model:value="loginModel.account"
-              @keydown.enter.prevent
-              round
-              size="large"
-              placeholder="请输入账号"
-            >
+            <n-input v-model:value="loginModel.account" @keydown.enter.prevent round size="large" placeholder="请输入账号">
               <template #prefix>
                 <n-icon style="margin-right: 10px">
                   <Person />
@@ -66,14 +72,8 @@ function onLogin(evt: MouseEvent) {
             </n-input>
           </n-form-item>
           <n-form-item path="pwd" label="密码" :show-require-mark="false">
-            <n-input
-              v-model:value="loginModel.pwd"
-              type="password"
-              round
-              size="large"
-              show-password-on="click"
-              placeholder="请输入密码"
-            >
+            <n-input v-model:value="loginModel.pwd" type="password" round size="large" show-password-on="click"
+              placeholder="请输入密码">
               <template #prefix>
                 <n-icon style="margin-right: 10px">
                   <LockClosed />
@@ -88,23 +88,11 @@ function onLogin(evt: MouseEvent) {
             <n-button text type="info">《用户服务协议》</n-button>
           </div>
           <n-form-item>
-            <n-button
-              round
-              size="large"
-              type="info"
-              text-color="#FFF"
-              style="width: 100%"
-              @click="onLogin"
-              >登录</n-button
-            >
+            <n-button round size="large" type="info" text-color="#FFF" style="width: 100%" @click="onLogin">登录
+            </n-button>
           </n-form-item>
           <n-space justify="space-between">
-            <n-button
-              text
-              type="info"
-              @click="$router.push({ path: '/register' })"
-              >用户注册</n-button
-            >
+            <n-button text type="info" @click="router.push({ path: '/register' })">用户注册</n-button>
             <n-button text type="info">忘记密码</n-button>
           </n-space>
         </n-form>
@@ -116,4 +104,6 @@ function onLogin(evt: MouseEvent) {
     </div>
   </div>
 </template>
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+
+</style>

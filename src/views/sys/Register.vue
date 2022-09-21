@@ -8,10 +8,14 @@ import {
   FormRules,
   useMessage,
 } from "naive-ui";
-import { reactive, ref, watch } from "vue";
-import { relative } from "path";
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { baseAxios } from "../../const";
+import { useUsrstore } from "../../store";
 
 const message = useMessage();
+const store = useUsrstore();
+const router = useRouter();
 const registerForm = ref<FormInst | null>(null);
 const repwdRef = ref<FormItemInst | null>(null);
 const registerModel = ref<IRegisterModel>({
@@ -37,17 +41,24 @@ function checkRePwdInput() {
   }
 }
 const registerRules: FormRules = {
-  usrname:[
+  usrName: [
     {
-      required:true,
-      message:"请输入姓名",
+      required: true,
+      message: "请输入姓名",
       trigger: ["blur"],
     }
   ],
   account: [
     {
       required: true,
-      message: "请输入账号",
+      validator:(rule:FormItemRule,value:string) => {
+        if(!value){
+          return new Error("请输入账号");
+        } else if(value.length !== 12){
+          return new Error("账号长度应为12");
+        }
+        return true;
+      },
       trigger: ["blur"],
     },
   ],
@@ -76,24 +87,43 @@ const registerRules: FormRules = {
     {
       required: true,
       message: "请选择性别",
-      trigger: ["blur"],
+      trigger: ["blur","change"],
     },
   ],
-  phone:[
+  phone: [
     {
-      required:true,
-      validator:(rule:FormItemRule,value:string) => {
-        if(!value){
+      required: true,
+      validator: (rule: FormItemRule, value: string) => {
+        if (!value) {
           return new Error("请输入手机号码");
-        }else if(!/^[1][3,4,5,6,7,8,9][0-9]{9}$/.test(value)){
+        } else if (!/^[1][3,4,5,6,7,8,9][0-9]{9}$/.test(value)) {
           return new Error("输入的手机号不合法")
         }
+        return true;
       }
     }
   ]
 };
 function onRegister(): void {
-  registerForm.value?.validate((err) => {});
+  registerForm.value?.validate((err) => {
+    if(!err){
+      if(!checkDeal.value){
+        message.error("请勾选《用户服务协议》");
+      } else{
+        baseAxios.post("/sys/register",registerModel.value).then((res:any) => {
+          if(res.data.success){
+            store.$state.token = res.data.token;
+            store.$state.usr = res.data.result;
+            router.push({path:"/console"});
+          }else{
+            message.error(res.data.message);
+          }
+        });
+      }
+    }else{
+      message.error("请将信息填写完整");
+    }
+  });
 }
 </script>
 <template>
@@ -101,78 +131,33 @@ function onRegister(): void {
     <div class="sys-card">
       <div class="sys-form scroll">
         <n-h2>用户注册</n-h2>
-        <n-form
-          ref="registerForm"
-          :model="registerModel"
-          :rules="registerRules"
-        >
-          <n-form-item path="usrname" label="姓名">
-            <n-input
-              v-model:value="registerModel.usrName"
-              round
-              size="large"
-              placeholder="请输入姓名"
-            />
+        <n-form ref="registerForm" :model="registerModel" :rules="registerRules">
+          <n-form-item path="usrName" label="姓名" :show-require-mark="false">
+            <n-input v-model:value="registerModel.usrName" round size="large" placeholder="请输入姓名" />
           </n-form-item>
-          <n-form-item
-            path="sex"
-            label="性别"
-            label-placement="left"
-            :show-require-mark="false"
-          >
+          <n-form-item path="sex" label="性别" label-placement="left" :show-require-mark="false">
             <n-radio-group v-model:value="registerModel.sex">
-              <n-space
-                ><n-radio value="男">男</n-radio>
+              <n-space>
+                <n-radio value="男">男</n-radio>
                 <n-radio value="女">女</n-radio>
               </n-space>
             </n-radio-group>
           </n-form-item>
           <n-form-item path="account" label="账号" :show-require-mark="false">
-            <n-input
-              v-model:value="registerModel.account"
-              @keydown.enter.prevent
-              round
-              size="large"
-              placeholder="请输入账号"
-            ></n-input>
+            <n-input v-model:value="registerModel.account" @keydown.enter.prevent round size="large"
+              placeholder="请输入账号"></n-input>
           </n-form-item>
           <n-form-item path="pwd" label="密码" :show-require-mark="false">
-            <n-input
-              v-model:value="registerModel.pwd"
-              @keydown.enter.prevent
-              round
-              size="large"
-              placeholder="请输入密码"
-              type="password"
-              show-password-on="click"
-            ></n-input>
+            <n-input v-model:value="registerModel.pwd" @keydown.enter.prevent round size="large" placeholder="请输入密码"
+              type="password" show-password-on="click"></n-input>
           </n-form-item>
-          <n-form-item
-            path="repwd"
-            label="重复密码"
-            :show-require-mark="false"
-            ref="repwdRef"
-          >
-            <n-input
-              v-model:value="registerModel.repwd"
-              @keydown.enter.prevent
-              round
-              size="large"
-              placeholder="请再次输入密码"
-              @input="checkRePwdInput"
-              type="password"
-              show-password-on="click"
-            >
+          <n-form-item path="repwd" label="重复密码" :show-require-mark="false" ref="repwdRef">
+            <n-input v-model:value="registerModel.repwd" @keydown.enter.prevent round size="large" placeholder="请再次输入密码"
+              @input="checkRePwdInput" type="password" show-password-on="click">
             </n-input>
           </n-form-item>
           <n-form-item path="phone" label="手机号" :show-require-mark="false">
-            <n-input
-              v-model:value="registerModel.phone"
-              @keydown.enter.prevent
-              round
-              size="large"
-              placeholder="请输入手机号"
-            >
+            <n-input v-model:value="registerModel.phone" @keydown.enter.prevent round size="large" placeholder="请输入手机号">
             </n-input>
           </n-form-item>
           <div>
@@ -182,20 +167,11 @@ function onRegister(): void {
             <n-button text type="info">《用户服务协议》</n-button>
           </div>
           <n-form-item>
-            <n-button
-              round
-              size="large"
-              type="info"
-              text-color="#FFF"
-              style="width: 100%"
-              @click="onRegister"
-              >注册</n-button
-            >
+            <n-button round size="large" type="info" text-color="#FFF" style="width: 100%" @click="onRegister">注册
+            </n-button>
           </n-form-item>
           <n-space justify="space-between">
-            <n-button text type="info" @click="$router.push({ path: '/login' })"
-              >返回登录</n-button
-            >
+            <n-button text type="info" @click="$router.push({ path: '/login' })">返回登录</n-button>
           </n-space>
         </n-form>
       </div>
@@ -213,6 +189,7 @@ function onRegister(): void {
   overflow-y: scroll;
   scrollbar-width: none;
 }
+
 .scroll::-webkit-scrollbar {
   display: none;
 }
