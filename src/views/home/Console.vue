@@ -2,7 +2,8 @@
 import { reactive, ref, onMounted } from "vue";
 import { NavigateNextOutlined as next } from "@vicons/material";
 import { IOdata, IOLogData, IBaseChartData } from "../../interface/dataModel";
-import { drawIOBar,drawRoseDiagram } from "../../tools/drawCanvas";
+import { drawIOBar, drawRoseDiagram } from "../../tools/drawCanvas";
+import { baseAxios } from "../../const";
 
 const statisticData = reactive({
   warehouses: 10,
@@ -137,8 +138,9 @@ const warehouseData: Array<IBaseChartData> = [
   },
 ];
 onMounted(async () => {
+  baseAxios.get("/ctrl/queryOverviewData").then((res) => {});
   await drawIOBar(ioChartRef.value, ioData);
-  await drawRoseDiagram(KWordsChartRef.value,warehouseData)
+  await drawRoseDiagram(KWordsChartRef.value, warehouseData);
 });
 </script>
 <template>

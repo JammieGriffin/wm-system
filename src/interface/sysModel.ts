@@ -16,4 +16,3 @@ export interface IRegisterModel {
 export interface IRegisterPageCtrl {
   checkDeal: Boolean;
 }
-
