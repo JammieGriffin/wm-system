@@ -6,10 +6,12 @@ import {
   IRenameForm,
   INewHouseForm,
 } from "../../interface/dataModel";
-import { reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useMessage, useDialog, FormInst, FormItemRule } from "naive-ui";
 import { objectToString } from "@vue/shared";
+import { baseAxios } from "../../const";
+import { IHouseType, INewHouse } from "../../api/data";
 
 const router = useRouter();
 const message = useMessage();
@@ -21,8 +23,10 @@ const emptyStyle = {
   alignItems: "center",
   cursor: "pointer",
 };
-const warehouseInfo: Array<IWarehouseInfo> = reactive([
-  {
+
+const warehouseInfo: Array<IWarehouseInfo> = reactive([]);
+/**
+ *  {
     id: "7af5831cb5",
     name: "1号仓库",
     status: {
@@ -62,7 +66,7 @@ const warehouseInfo: Array<IWarehouseInfo> = reactive([
     type: "生产原料仓库",
     capacity: 20000,
   },
-]);
+ */
 
 // 仓库快捷设置相关
 const renameModal = ref<boolean>(false);
@@ -189,29 +193,18 @@ const newHouseModal = ref<boolean>(false);
 const newHouseFormRef = ref<FormInst | null>(null);
 const newHouseForm: INewHouseForm = reactive({
   houseName: "",
-  houseType: "",
+  houseType: null,
+  houseArea: 0,
   capacity: 0,
-  anotherType: "",
+  otherType: "",
 });
-let isAnotherType = ref<boolean>(false);
-const houseTypeOptions = [
-  {
-    label: "生产原料仓库",
-    value: "生产原料仓库",
-  },
-  {
-    label: "其它物料仓库",
-    value: "其它物料仓库",
-  },
-  {
-    label: "成品存储仓库",
-    value: "成品存储仓库",
-  },
-  {
-    label: "其它类型",
-    value: "其它类型",
-  },
-];
+const minCapacity = computed(() => {
+  return Math.round(newHouseForm.houseArea * 0.3 * 50);
+});
+const maxCapacity = computed(() => {
+  return Math.round(newHouseForm.houseArea * 0.6 * 50);
+});
+const houseTypeOptions: Array<IHouseType> = reactive([]);
 const newHouseFormRules = {
   houseName: {
     required: true,
@@ -224,8 +217,8 @@ const newHouseFormRules = {
       if (!newHouseForm.houseType) {
         return new Error("请选择仓库类型");
       } else {
-        if (newHouseForm.houseType === "其它类型") {
-          if (!newHouseForm.anotherType) {
+        if (newHouseForm.houseType === -1) {
+          if (!newHouseForm.otherType) {
             return new Error("请输入仓库类型名称");
           }
         }
@@ -233,55 +226,68 @@ const newHouseFormRules = {
     },
     trigger: blur,
   },
-  capacity: {
+  houseArea: {
+    type: "number",
     required: true,
-    validator(rule: FormItemRule, value: number) {
-      if (value === 0) {
-        return new Error("请输入仓库容量");
-      }
-    },
+    message: "请输入仓库面积",
     trigger: blur,
   },
+  capacity: [
+    {
+      required: true,
+      validator(rule: FormItemRule, value: number) {
+        if (value === 0) {
+          return new Error("请输入仓库容量");
+        }
+      },
+      trigger: blur,
+    },
+    {
+      required: true,
+      validator(rule: FormItemRule, value: number) {
+        if (newHouseForm.houseArea === 0) {
+          return new Error("请先输入仓库面积");
+        }
+        return true;
+      },
+      trigger: "input",
+    },
+  ],
 };
-watch(
-  () => newHouseForm.houseType,
-  (type) => {
-    if (type === "其它类型") {
-      console.log(11);
-      isAnotherType.value = true;
-    } else {
-      isAnotherType.value = false;
-    }
-  }
-);
 function createNewHouse() {
   newHouseFormRef.value?.validate((err) => {
     if (!err) {
-      const { houseName, capacity } = newHouseForm;
-      let houseType: string =
-        newHouseForm.houseType === "其它类型"
-          ? newHouseForm.anotherType
-          : newHouseForm.houseType;
-      const newHouse: IWarehouseInfo = {
-        id: "74c6ad82b",
+      const { houseName, capacity, houseArea, houseType, otherType } =
+        newHouseForm;
+      const newHouse: INewHouse = {
         name: houseName,
-        status: {
-          value: "未运行",
-          label: "default",
-        },
-        type: houseType,
+        type: houseType as number,
+        area: houseArea,
         capacity: capacity,
+        typeName: otherType,
       };
-      warehouseInfo.push(newHouse);
+      baseAxios.post("/warehouse/newHouse", newHouse).then((res) => {});
       newHouseModal.value = false;
     }
   });
 }
 function closeNewHouseModal() {
-  newHouseForm.houseType = "";
+  newHouseForm.houseType = null;
   newHouseForm.houseName = "";
+  newHouseForm.houseArea = 0;
   newHouseForm.capacity = 0;
+  newHouseForm.otherType = "";
 }
+
+onMounted(async () => {
+  await baseAxios.get("/warehouse/queryHouseTypeList").then((res) => {
+    Object.assign(houseTypeOptions, res.data.result);
+    houseTypeOptions.push({
+      htid: -1,
+      value: "其它类型",
+    });
+  });
+});
 </script>
 <template>
   <n-grid :cols="4" x-gap="20" y-gap="20">
@@ -386,21 +392,37 @@ function closeNewHouseModal() {
             v-model:value="newHouseForm.houseType"
             :options="houseTypeOptions"
             placeholder="请选择仓库类型"
+            label-field="value"
+            value-field="htid"
             style="width: 100%"
-            :class="{ anotherType: isAnotherType }"
+            :class="{ otherType: newHouseForm.houseType === -1 }"
           />
           <n-input
-            v-model:value="newHouseForm.anotherType"
+            v-model:value="newHouseForm.otherType"
             placeholder="请输入类型名称"
-            v-if="isAnotherType"
+            v-if="newHouseForm.houseType === -1"
           />
+        </n-form-item>
+        <n-form-item path="houseArea" label="仓库面积">
+          <n-input-number
+            v-model:value="newHouseForm.houseArea"
+            placeholser="请输入仓库面积"
+            min="0"
+            max="1000000"
+            :precision="0"
+            style="width: 100%"
+          >
+            <template #suffix>
+              <span style="color: #afb0b2">平方米</span>
+            </template>
+          </n-input-number>
         </n-form-item>
         <n-form-item path="capacity" label="仓库容量">
           <n-input-number
             v-model:value="newHouseForm.capacity"
             placeholder="请规定仓库容量"
-            min="0"
-            max="1000000"
+            :min="minCapacity"
+            :max="maxCapacity"
             step="1000"
             :precision="0"
             style="width: 100%"
@@ -430,7 +452,7 @@ function closeNewHouseModal() {
   cursor: pointer;
 }
 
-.anotherType {
+.otherType {
   margin-right: 12px;
 }
 </style>

@@ -6,3 +6,15 @@ export interface IUsr {
   usrName: string;
   phone: string;
 }
+
+export interface INewHouse {
+  name: string;
+  type: number;
+  area: number;
+  capacity: number;
+  typeName?: string;
+}
+export interface IHouseType {
+  htid: number;
+  value: string;
+}

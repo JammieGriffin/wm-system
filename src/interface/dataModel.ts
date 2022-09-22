@@ -1,48 +1,49 @@
-export interface IOdata{
-  in:number;
-  out:number;
-  date:string;
+export interface IOdata {
+  in: number;
+  out: number;
+  date: string;
 }
-export interface IOLogData{
-  host:string;
-  name:string;
-  status:string;
-  time:string;
-  principal:string;
+export interface IOLogData {
+  host: string;
+  name: string;
+  status: string;
+  time: string;
+  principal: string;
 }
-export interface IBaseChartData{
-  name:string;
-  value:number;
+export interface IBaseChartData {
+  name: string;
+  value: number;
 }
-export interface IWarehouseInfo{
-  id:string;
-  name:string;
-  status:{
-    value:string;
-    label:string;
+export interface IWarehouseInfo {
+  id: string;
+  name: string;
+  status: {
+    value: string;
+    label: string;
   };
-  type:string;
-  capacity:number;
+  type: string;
+  capacity: number;
 }
 
 export type IRenameForm = {
-  houseId:string;
-  houseOldName:string;
-  houseNewName:string;
-}
-export type INewHouseForm ={
-  houseName:string;
-  houseType:string;
-  capacity:number;
-  anotherType?:string;
-}
+  houseId: string;
+  houseOldName: string;
+  houseNewName: string;
+};
+export type INewHouseForm = {
+  houseName: string;
+  houseType: number | null;
+  houseArea: number;
+  capacity: number;
+  otherType?: string;
+};
 export interface IHouseDetialInfo {
   houseName: string;
   houseId: string;
   houseAddr: string;
   houseType: string;
   capacity: number;
-  status:{
+  status: {
     label: string;
     value: string;
   };
