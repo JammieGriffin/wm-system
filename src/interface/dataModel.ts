@@ -22,6 +22,7 @@ export interface IWarehouseInfo {
     label: string;
   };
   type: string;
+  houseArea: number;
   capacity: number;
 }
 

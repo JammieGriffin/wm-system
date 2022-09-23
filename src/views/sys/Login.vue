@@ -38,13 +38,13 @@ function onLogin(evt: MouseEvent) {
             account: loginModel.value.account,
             pwd: loginModel.value.pwd,
           })
-          .then((res) => {
-            if (res.data.success) {
-              store.$state.token = res.data.token;
-              store.$state.usr = res.data.result;
+          .then((res:any) => {
+            if (res.success) {
+              store.$state.token = res.token;
+              store.$state.usr = res.result;
               router.push({ path: "/console" });
             } else {
-              message.error(res.data.message);
+              message.error(res.message);
             }
           });
       } else {
