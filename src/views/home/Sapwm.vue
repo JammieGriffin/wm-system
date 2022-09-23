@@ -11,7 +11,8 @@ import { useRouter } from "vue-router";
 import { useMessage, useDialog, FormInst, FormItemRule } from "naive-ui";
 import { objectToString } from "@vue/shared";
 import { baseAxios } from "../../const";
-import { IHouseType, INewHouse } from "../../api/data";
+import { IHouse, IHouseType, INewHouse } from "../../api/data";
+import { AxiosError } from "axios";
 
 const router = useRouter();
 const message = useMessage();
@@ -22,6 +23,7 @@ const emptyStyle = {
   justifyContent: "center",
   alignItems: "center",
   cursor: "pointer",
+  height:"100%"
 };
 
 const warehouseInfo: Array<IWarehouseInfo> = reactive([]);
@@ -168,8 +170,19 @@ const renameRule = {
 function rename() {
   renameFormRef.value?.validate((err) => {
     if (!err) {
-      warehouseInfo[houseIndex].name = renameForm.houseNewName;
-      renameModal.value = false;
+      baseAxios.post("/warehouse/rename",{
+        hid:renameForm.houseId,
+        newName:renameForm.houseNewName
+      }).then((res:any) => {
+        if (res.success) {
+          message.success(res.message);
+          warehouseInfo[houseIndex].name = renameForm.houseNewName;
+        }else{
+          message.error(res.message);
+        }
+      }).finally(() => {
+        renameModal.value = false;
+      });
     }
   });
 }
@@ -266,8 +279,21 @@ function createNewHouse() {
         capacity: capacity,
         typeName: otherType,
       };
-      baseAxios.post("/warehouse/newHouse", newHouse).then((res) => {});
-      newHouseModal.value = false;
+      baseAxios
+        .post("/warehouse/newHouse", newHouse)
+        .then((res:any) => {
+          if (res.success) {
+            message.success(res.message);
+            if (houseType === -1) {
+              loadHouseTypeList();
+            }
+          } else {
+            message.error(res.message);
+          }
+        })
+        .finally(() => {
+          newHouseModal.value = false;
+        });
     }
   });
 }
@@ -278,19 +304,41 @@ function closeNewHouseModal() {
   newHouseForm.capacity = 0;
   newHouseForm.otherType = "";
 }
-
-onMounted(async () => {
-  await baseAxios.get("/warehouse/queryHouseTypeList").then((res) => {
-    Object.assign(houseTypeOptions, res.data.result);
+function loadHouseTypeList() {
+  baseAxios.get("/warehouse/queryHouseTypeList").then((res:any) => {
+    Object.assign(houseTypeOptions, res.result);
     houseTypeOptions.push({
       htid: -1,
       value: "其它类型",
     });
   });
+}
+function loadWreahouse() {
+  baseAxios.get("/warehouse/getWarehouseList").then((res:any) => {
+    res.result.forEach((e: IHouse) => {
+      warehouseInfo.push({
+        id: e.hid,
+        name: e.houseName,
+        status: {
+          value: e.value,
+          label: e.style,
+        },
+        type: e.typeName,
+        houseArea: e.houseArea,
+        capacity: e.capacity,
+      });
+    }).catch((err:AxiosError) => {
+      console.log(err,1)
+    })
+  });
+}
+onMounted(async () => {
+  loadWreahouse();
 });
 </script>
 <template>
   <n-grid :cols="4" x-gap="20" y-gap="20">
+    <!-- 仓库列表 -->
     <n-gi v-for="(house, index) in warehouseInfo" :key="index">
       <n-card :title="house.name" embedded hoverable>
         <template #header-extra>
@@ -320,6 +368,9 @@ onMounted(async () => {
           <n-descriptions-item label="仓库类型">{{
             house.type
           }}</n-descriptions-item>
+          <n-descriptions-item label="仓库面积">{{
+            house.houseArea
+          }}</n-descriptions-item>
           <n-descriptions-item label="仓库容量"
             >{{ house.capacity }}单位</n-descriptions-item
           >
@@ -331,11 +382,13 @@ onMounted(async () => {
         </n-descriptions>
       </n-card>
     </n-gi>
+    <!-- 新建仓库 -->
     <n-gi>
       <n-card
         embedded
         hoverable
         :content-style="emptyStyle"
+        style="height:100%"
         @click="newHouseModal = true"
       >
         <n-empty description="新建仓库">
@@ -348,6 +401,7 @@ onMounted(async () => {
       </n-card>
     </n-gi>
   </n-grid>
+  <!-- 修改仓库名称弹窗 -->
   <n-modal v-model:show="renameModal" @after-leave="handleClose">
     <n-card style="width: 500px; min-height: 0px" title="修改仓库名称">
       <n-form :model="renameForm" :rules="renameRule" ref="renameFormRef">
@@ -374,6 +428,7 @@ onMounted(async () => {
       </template>
     </n-card>
   </n-modal>
+  <!-- 新建仓库弹窗 -->
   <n-modal v-model:show="newHouseModal" @after-leave="closeNewHouseModal">
     <n-card style="width: 30vw" title="新建仓库">
       <n-form

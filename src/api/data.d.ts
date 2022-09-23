@@ -18,3 +18,12 @@ export interface IHouseType {
   htid: number;
   value: string;
 }
+export interface IHouse {
+  hid: string;
+  houseArea: number;
+  houseName:string;
+  style:string;
+  capacity:number;
+  value:string;
+  typeName:string;
+}
