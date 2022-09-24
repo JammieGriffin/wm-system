@@ -1,16 +1,17 @@
 <script lang="ts" setup>
 import { ref } from "vue";
-import { useRouter } from "vue-router";
+
 import { FormInst, useMessage } from "naive-ui";
 import { Person, LockClosed } from "@vicons/ionicons5";
 import { ILoginModel } from "../../interface/sysModel";
 import { baseAxios } from "../../const";
 import "../../scss/sys.scss";
 import { useUsrstore } from "../../store";
+import router from "../../router";
 
 const message = useMessage();
 const store = useUsrstore();
-const router = useRouter();
+
 const loginForm = ref<FormInst | null>(null);
 const loginModel = ref<ILoginModel>({
   account: null,
@@ -38,13 +39,14 @@ function onLogin(evt: MouseEvent) {
             account: loginModel.value.account,
             pwd: loginModel.value.pwd,
           })
-          .then((res:any) => {
-            if (res.success) {
-              store.$state.token = res.token;
-              store.$state.usr = res.result;
+          .then((res) => {
+            console.log(res)
+            if (res.data.success) {
+              store.$state.token = res.data.token;
+              store.$state.usr = res.data.result;
               router.push({ path: "/console" });
             } else {
-              message.error(res.message);
+              message.error(res.data.message);
             }
           });
       } else {

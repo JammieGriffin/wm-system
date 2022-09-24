@@ -9,13 +9,13 @@ import {
   useMessage,
 } from "naive-ui";
 import { ref } from "vue";
-import { useRouter } from "vue-router";
+
 import { baseAxios } from "../../const";
 import { useUsrstore } from "../../store";
-
+import router from "../../router";
 const message = useMessage();
 const store = useUsrstore();
-const router = useRouter();
+
 const registerForm = ref<FormInst | null>(null);
 const repwdRef = ref<FormItemInst | null>(null);
 const registerModel = ref<IRegisterModel>({
@@ -110,7 +110,7 @@ function onRegister(): void {
       if(!checkDeal.value){
         message.error("请勾选《用户服务协议》");
       } else{
-        baseAxios.post("/sys/register",registerModel.value).then((res:any) => {
+        baseAxios.post("/sys/register",registerModel.value).then((res) => {
           if(res.data.success){
             store.$state.token = res.data.token;
             store.$state.usr = res.data.result;
