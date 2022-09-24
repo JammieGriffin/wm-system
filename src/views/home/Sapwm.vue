@@ -7,14 +7,10 @@ import {
   INewHouseForm,
 } from "../../interface/dataModel";
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { useRouter } from "vue-router";
 import { useMessage, useDialog, FormInst, FormItemRule } from "naive-ui";
-import { objectToString } from "@vue/shared";
 import { baseAxios } from "../../const";
 import { IHouse, IHouseType, INewHouse } from "../../api/data";
-import { AxiosError } from "axios";
-
-const router = useRouter();
+import router from "../../router";
 const message = useMessage();
 const dialog = useDialog();
 
@@ -23,52 +19,10 @@ const emptyStyle = {
   justifyContent: "center",
   alignItems: "center",
   cursor: "pointer",
-  height:"100%"
+  height: "100%",
 };
 
 const warehouseInfo: Array<IWarehouseInfo> = reactive([]);
-/**
- *  {
-    id: "7af5831cb5",
-    name: "1号仓库",
-    status: {
-      value: "运行中",
-      label: "success",
-    },
-    type: "生产原料仓库",
-    capacity: 20000,
-  },
-  {
-    id: "7af5831cb5",
-    name: "2号仓库",
-    status: {
-      value: "已停用",
-      label: "default",
-    },
-    type: "其它物料仓库",
-    capacity: 20000,
-  },
-  {
-    id: "7af5831cb5",
-    name: "3号仓库",
-    status: {
-      value: "已爆满",
-      label: "error",
-    },
-    type: "成品存储仓库",
-    capacity: 20000,
-  },
-  {
-    id: "7af5831cb5",
-    name: "4号仓库",
-    status: {
-      value: "维护中",
-      label: "warning",
-    },
-    type: "生产原料仓库",
-    capacity: 20000,
-  },
- */
 
 // 仓库快捷设置相关
 const renameModal = ref<boolean>(false);
@@ -111,38 +65,62 @@ const settingOptions = [
 function openOptions(index: number) {
   houseIndex = index;
 }
+function changeHouseStatus(key: string) {
+  const { status, id } = warehouseInfo[houseIndex];
+  if (status.label === "error") {
+    return message.error("仓库已爆满，无法更变状态");
+  } else {
+    let state = {
+      label: "",
+      value: "",
+    };
+    let hsid: number = -1;
+    switch (key) {
+      case "active":
+        if (status.label === "success") return;
+        state = {
+          label: "success",
+          value: "运行中",
+        };
+        hsid = 3;
+        break;
+      case "blockup":
+        if (status.label === "default") return;
+        state = {
+          label: "def",
+          value: "未运行",
+        };
+        hsid = 1;
+        break;
+      case "maintain":
+        if (status.label === "warning") return;
+        state = {
+          label: "warning",
+          value: "维护中",
+        };
+        hsid = 2;
+        break;
+    }
+    baseAxios
+      .post("/warehouse/changeHouseType", {
+        id,
+        hsid,
+      })
+      .then((res) => {
+        if (res.data.success) {
+          warehouseInfo[houseIndex].status = {
+            label: state.label === "def" ? "default" : state.label,
+            value: state.value,
+          };
+          message.success("修改仓库状态成功");
+        } else {
+          message.error(res.data.message);
+        }
+      });
+  }
+}
 function handleSetting(key: string) {
   switch (key) {
-    case "active":
-      if (warehouseInfo[houseIndex].status.label === "error") {
-        message.error("仓库已爆满，无法更变状态");
-        return;
-      }
-      warehouseInfo[houseIndex].status = {
-        label: "success",
-        value: "运行中",
-      };
-      break;
-    case "blockup":
-      if (warehouseInfo[houseIndex].status.label === "error") {
-        message.error("仓库已爆满，无法更变状态");
-        return;
-      }
-      warehouseInfo[houseIndex].status = {
-        label: "default",
-        value: "已停用",
-      };
-      break;
-    case "maintain":
-      if (warehouseInfo[houseIndex].status.label === "error") {
-        message.error("仓库已爆满，无法更变状态");
-        return;
-      }
-      warehouseInfo[houseIndex].status = {
-        label: "warning",
-        value: "维护中",
-      };
-      break;
     case "rename":
       renameModal.value = true;
       let { id, name } = warehouseInfo[houseIndex];
@@ -151,6 +129,9 @@ function handleSetting(key: string) {
       break;
     case "delHouse":
       delHouse();
+      break;
+    default:
+      changeHouseStatus(key);
       break;
   }
 }
@@ -170,19 +151,22 @@ const renameRule = {
 function rename() {
   renameFormRef.value?.validate((err) => {
     if (!err) {
-      baseAxios.post("/warehouse/rename",{
-        hid:renameForm.houseId,
-        newName:renameForm.houseNewName
-      }).then((res:any) => {
-        if (res.success) {
-          message.success(res.message);
-          warehouseInfo[houseIndex].name = renameForm.houseNewName;
-        }else{
-          message.error(res.message);
-        }
-      }).finally(() => {
-        renameModal.value = false;
-      });
+      baseAxios
+        .post("/warehouse/rename", {
+          hid: renameForm.houseId,
+          newName: renameForm.houseNewName,
+        })
+        .then((res) => {
+          if (res.data.success) {
+            message.success(res.data.message);
+            warehouseInfo[houseIndex].name = renameForm.houseNewName;
+          } else {
+            message.error(res.data.message);
+          }
+        })
+        .finally(() => {
+          renameModal.value = false;
+        });
     }
   });
 }
@@ -197,7 +181,16 @@ function delHouse() {
     closable: false,
     negativeButtonProps: { type: "default" },
     onPositiveClick: () => {
-      warehouseInfo.splice(houseIndex, 1);
+      baseAxios
+        .delete(`/warehouse/delHouse?id=${warehouseInfo[houseIndex].id}`)
+        .then((res) => {
+          if (res.data.success) {
+            message.success(res.data.message);
+            warehouseInfo.splice(houseIndex, 1);
+          } else {
+            message.error(res.data.result)
+          }
+        });
     },
   });
 }
@@ -281,14 +274,14 @@ function createNewHouse() {
       };
       baseAxios
         .post("/warehouse/newHouse", newHouse)
-        .then((res:any) => {
-          if (res.success) {
-            message.success(res.message);
+        .then((res) => {
+          if (res.data.success) {
+            message.success(res.data.message);
             if (houseType === -1) {
               loadHouseTypeList();
             }
           } else {
-            message.error(res.message);
+            message.error(res.data.message);
           }
         })
         .finally(() => {
@@ -305,8 +298,8 @@ function closeNewHouseModal() {
   newHouseForm.otherType = "";
 }
 function loadHouseTypeList() {
-  baseAxios.get("/warehouse/queryHouseTypeList").then((res:any) => {
-    Object.assign(houseTypeOptions, res.result);
+  baseAxios.get("/warehouse/queryHouseTypeList").then((res) => {
+    Object.assign(houseTypeOptions, res.data.result);
     houseTypeOptions.push({
       htid: -1,
       value: "其它类型",
@@ -314,22 +307,23 @@ function loadHouseTypeList() {
   });
 }
 function loadWreahouse() {
-  baseAxios.get("/warehouse/getWarehouseList").then((res:any) => {
-    res.result.forEach((e: IHouse) => {
+  baseAxios.get("/warehouse/getWarehouseList").then((res) => {
+    res.data.result.forEach((house: IHouse) => {
       warehouseInfo.push({
-        id: e.hid,
-        name: e.houseName,
+        id: house.hid,
+        name: house.houseName,
+        hsid: house.hsid,
         status: {
-          value: e.value,
-          label: e.style,
+          value: house.value,
+          label: house.style === "def" ? "default" : house.style,
         },
-        type: e.typeName,
-        houseArea: e.houseArea,
-        capacity: e.capacity,
+        type: house.typeName,
+        houseArea: house.houseArea,
+        capacity: house.capacity,
       });
-    }).catch((err:AxiosError) => {
-      console.log(err,1)
-    })
+    });
+    }).catch((err) => {
+      message.error(err)
   });
 }
 onMounted(async () => {
@@ -388,7 +382,7 @@ onMounted(async () => {
         embedded
         hoverable
         :content-style="emptyStyle"
-        style="height:100%"
+        style="height: 100%"
         @click="newHouseModal = true"
       >
         <n-empty description="新建仓库">

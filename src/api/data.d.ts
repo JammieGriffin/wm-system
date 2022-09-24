@@ -20,6 +20,7 @@ export interface IHouseType {
 }
 export interface IHouse {
   hid: string;
+  hsid:number;
   houseArea: number;
   houseName:string;
   style:string;

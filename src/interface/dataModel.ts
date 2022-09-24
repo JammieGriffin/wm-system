@@ -17,6 +17,7 @@ export interface IBaseChartData {
 export interface IWarehouseInfo {
   id: string;
   name: string;
+  hsid:number;
   status: {
     value: string;
     label: string;
