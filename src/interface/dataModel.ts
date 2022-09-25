@@ -1,3 +1,5 @@
+import { IMember } from "../api/data";
+
 export interface IOdata {
   in: number;
   out: number;
@@ -50,8 +52,8 @@ export interface IHouseDetialInfo {
     value: string;
   };
   houseArea: number;
-  houseAdmin: string;
-  houseStaff: Array<string>;
+  houseAdmin: IMember;
+  houseStaff: Array<IMember>;
 }
 export interface IQuery {
   type: string | null;

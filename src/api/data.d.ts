@@ -20,11 +20,17 @@ export interface IHouseType {
 }
 export interface IHouse {
   hid: string;
-  hsid:number;
+  hsid: number;
   houseArea: number;
-  houseName:string;
-  style:string;
-  capacity:number;
-  value:string;
-  typeName:string;
+  houseName: string;
+  style: string;
+  capacity: number;
+  value: string;
+  typeName: string;
+}
+export interface IMember {
+  uid: string;
+  usrName: string;
+  usrType?: string;
+  style?: string;
 }

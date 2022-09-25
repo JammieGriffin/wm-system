@@ -14,11 +14,59 @@ import {
 } from "@vicons/material";
 import { UserMultiple } from "@vicons/carbon";
 import { ReloadOutline, SearchOutline } from "@vicons/ionicons5";
-import { DataTableColumns, NButton } from "naive-ui";
+import { DataTableColumns, NButton, useMessage } from "naive-ui";
+import { useRouter, useRoute } from "vue-router";
+import { baseAxios } from "../../const";
+import { IMember } from "../../api/data";
+
+const message = useMessage();
+const router = useRouter();
+const route = useRoute();
 
 const capacityUsageRef = ref();
+function loadBaseInfo() {
+  baseAxios
+    .get(`/warehouse/detial/queryBaseInfo?id=${route.params.id}`)
+    .then((res) => {
+      console.log(res);
+      const {
+        hid,
+        houseName,
+        houseAddr,
+        houseArea,
+        typeName,
+        value,
+        style,
+        member,
+        capacity,
+      } = res.data.result;
+      let admin;
+      let staff: Array<IMember> = [];
+      member.forEach((m:IMember) => {
+        m.usrType === "staff"
+          ? staff.push(m)
+          : (admin = { uid: m.uid, name: m.usrName, style: "error" });
+      })
+      const data = {
+        houseName,
+        houseId: hid,
+        houseAddr,
+        houseType: typeName,
+        capacity,
+        status: {
+          label: style,
+          value,
+        },
+        houseArea,
+        houseAdmin:admin?admin:{uid:"",usrName:"未指定负责人",style:"defalut"},
+        houseStaff:staff
+      };
+      Object.assign(detialInfo,data)
+    });
+}
 onMounted(async () => {
   await drawCapacityUsage(capacityUsageRef.value, usageData);
+  loadBaseInfo();
 });
 const usageData: Array<IBaseChartData> = reactive([
   {
@@ -47,29 +95,22 @@ const usageData: Array<IBaseChartData> = reactive([
   },
 ]);
 const detialInfo: IHouseDetialInfo = reactive({
-  houseName: "1号仓库",
-  houseId: "7af5831cb5",
-  houseAddr: "xx市xx区xx厂区",
-  houseType: "生产原料仓库",
-  capacity: 30000,
+  houseName: "",
+  houseId: "",
+  houseAddr: "",
+  houseType: "",
+  capacity: -1,
   status: {
-    label: "primary",
-    value: "运行中",
+    label: "",
+    value: "",
   },
-  houseArea: 2000,
-  houseAdmin: "张三",
-  houseStaff: [
-    "李四",
-    "王五",
-    "老六",
-    "老七",
-    "老八",
-    "小三",
-    "小四",
-    "小屋",
-    "小刘",
-    "小王",
-  ],
+  houseArea: -1,
+  houseAdmin: {
+    uid:"",
+    usrName:"",
+    style:""
+  },
+  houseStaff: [],
 });
 const tableQuery: IQuery = reactive({
   type: null,
@@ -299,18 +340,22 @@ const houseStaffOptions: Array<string> = reactive([]);
 const emptyForm = () => {
   return {
     baseInfo: {
-      houseAddr:"",
-      houseArea:0,
-      houseType:"",
-      status:{
-        label:"",
-        value:""
+      houseAddr: "",
+      houseArea: 0,
+      houseType: "",
+      status: {
+        label: "",
+        value: "",
       },
-      capacity:0
+      capacity: 0,
     },
     personnel: {
-      houseAdmin:"",
-      houseStaff:[""]
+      houseAdmin: {
+        uid:"",
+        usrName:"未指定负责人",
+        style:"defalut"
+      },
+      houseStaff: [{uid:"",usrName:""}],
     },
     trading: {
       houst: "",
@@ -340,12 +385,15 @@ function openModal(action: string): void {
       isTrading.value = false;
       isPersonnelChange.value = false;
       break;
-    case "人员变动":
-      const { houseAdmin, houseStaff } = detialInfo;
-      modalForm.personnel = { houseAdmin, houseStaff };
-      isTrading.value = false;
-      isPersonnelChange.value = true;
-      break;
+    // case "人员变动":
+    //   const { houseAdmin, houseStaff } = detialInfo;
+    //   modalForm.personnel = {
+    //     houseAdmin: houseAdmin.uid ? houseAdmin : {uid:"",usrName:"未指定负责人"} as IMember,
+    //     houseStaff: houseStaff ? houseStaff.usrName : [{uid:"",usrName:""}],
+    //   };
+    //   isTrading.value = false;
+    //   isPersonnelChange.value = true;
+    //   break;
     default:
       isTrading.value = true;
       isPersonnelChange.value = false;
@@ -355,9 +403,8 @@ function openModal(action: string): void {
 }
 function closeModal(): void {
   Object.assign(modalForm, emptyForm());
-  isTrading.value=false;
+  isTrading.value = false;
   isPersonnelChange.value = false;
-  
 }
 </script>
 <template>
@@ -384,13 +431,16 @@ function closeModal(): void {
             <n-text>{{ detialInfo.houseArea + "平方米" }}</n-text>
           </n-descriptions-item>
           <n-descriptions-item label="仓库负责人">
-            <n-tag type="error" round style="cursor: pointer">{{
-              detialInfo.houseAdmin
-            }}</n-tag>
+            <n-tag
+              :type="detialInfo.houseAdmin.style"
+              round
+              style="cursor: pointer"
+              >{{ detialInfo.houseAdmin.usrName }}</n-tag
+            >
           </n-descriptions-item>
           <n-descriptions-item label="仓库状态">
             <n-tag :bordered="false" :type="detialInfo.status.label" round>
-              <n-text>{{ detialInfo.status.value }}</n-text>
+              {{ detialInfo.status.value }}
             </n-tag>
           </n-descriptions-item>
           <n-descriptions-item label="仓库员工">
@@ -401,7 +451,7 @@ function closeModal(): void {
                 type="info"
                 round
                 style="cursor: pointer"
-                >{{ staff }}</n-tag
+                >{{ staff.usrName }}</n-tag
               >
             </n-space>
           </n-descriptions-item>
@@ -514,7 +564,10 @@ function closeModal(): void {
             </n-input-number>
           </n-form-item>
           <n-form-item label="仓库面积">
-            <n-input-number v-model:value="detialInfo.houseArea" style="width:100%">
+            <n-input-number
+              v-model:value="detialInfo.houseArea"
+              style="width: 100%"
+            >
               <template #suffix>
                 <span style="color: #afb0b2">平方米</span>
               </template>
@@ -527,10 +580,10 @@ function closeModal(): void {
             <n-select v-model:value="detialInfo.houseType" :options="[]" />
           </n-form-item>
         </div>
-        <div v-if="isPersonnelChange">
+        <!-- <div v-if="isPersonnelChange">
           <n-form-item label="仓库负责人">
             <n-select
-              v-model:value="detialInfo.houseAdmin"
+              v-model:value="detialInfo.houseAdmin.uid"
               placeholder="请选择仓库负责人"
               :options="houseAdminOptions"
             />
@@ -543,7 +596,7 @@ function closeModal(): void {
               :max-tag-count="4"
             />
           </n-form-item>
-        </div>
+        </div> -->
         <div v-if="isTrading">
           <n-form-item></n-form-item>
         </div>
