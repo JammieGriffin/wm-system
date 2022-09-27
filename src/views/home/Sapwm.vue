@@ -22,7 +22,7 @@ const emptyStyle = {
   height: "100%",
 };
 
-const warehouseInfo: Array<IWarehouseInfo> = reactive([]);
+const warehouseInfo = ref<Array<IWarehouseInfo>>([]);
 
 // 仓库快捷设置相关
 const renameModal = ref<boolean>(false);
@@ -66,7 +66,7 @@ function openOptions(index: number) {
   houseIndex = index;
 }
 function changeHouseStatus(key: string) {
-  const { status, id } = warehouseInfo[houseIndex];
+  const { status, id } = warehouseInfo.value[houseIndex];
   if (status.label === "error") {
     return message.error("仓库已爆满，无法更变状态");
   } else {
@@ -108,7 +108,7 @@ function changeHouseStatus(key: string) {
       })
       .then((res) => {
         if (res.data.success) {
-          warehouseInfo[houseIndex].status = {
+          warehouseInfo.value[houseIndex].status = {
             label: state.label === "def" ? "default" : state.label,
             value: state.value,
           };
@@ -123,7 +123,7 @@ function handleSetting(key: string) {
   switch (key) {
     case "rename":
       renameModal.value = true;
-      let { id, name } = warehouseInfo[houseIndex];
+      let { id, name } = warehouseInfo.value[houseIndex];
       renameForm.houseId = id;
       renameForm.houseOldName = name;
       break;
@@ -159,7 +159,7 @@ function rename() {
         .then((res) => {
           if (res.data.success) {
             message.success(res.data.message);
-            warehouseInfo[houseIndex].name = renameForm.houseNewName;
+            warehouseInfo.value[houseIndex].name = renameForm.houseNewName;
           } else {
             message.error(res.data.message);
           }
@@ -182,13 +182,13 @@ function delHouse() {
     negativeButtonProps: { type: "default" },
     onPositiveClick: () => {
       baseAxios
-        .delete(`/warehouse/delHouse?id=${warehouseInfo[houseIndex].id}`)
+        .delete(`/warehouse/delHouse?id=${warehouseInfo!.value[houseIndex].id}`)
         .then((res) => {
           if (res.data.success) {
             message.success(res.data.message);
-            warehouseInfo.splice(houseIndex, 1);
+            warehouseInfo.value.splice(houseIndex, 1);
           } else {
-            message.error(res.data.result)
+            message.error(res.data.result);
           }
         });
     },
@@ -202,7 +202,7 @@ const newHouseForm: INewHouseForm = reactive({
   houseType: null,
   houseArea: 0,
   capacity: 0,
-  otherType: "",
+  otherType: null,
 });
 const minCapacity = computed(() => {
   return Math.round(newHouseForm.houseArea * 0.3 * 50);
@@ -210,7 +210,7 @@ const minCapacity = computed(() => {
 const maxCapacity = computed(() => {
   return Math.round(newHouseForm.houseArea * 0.6 * 50);
 });
-const houseTypeOptions: Array<IHouseType> = reactive([]);
+const houseTypeOptions = ref<Array<IHouseType>>([]);
 const newHouseFormRules = {
   houseName: {
     required: true,
@@ -275,16 +275,14 @@ function createNewHouse() {
       baseAxios
         .post("/warehouse/newHouse", newHouse)
         .then((res) => {
-          if (res.data.success) {
-            message.success(res.data.message);
-            if (houseType === -1) {
-              loadHouseTypeList();
-            }
-          } else {
-            message.error(res.data.message);
-          }
+          message.success(res.data.message);
+        })
+        .catch((err) => {
+          message.error(err);
         })
         .finally(() => {
+          loadHouseTypeList();
+          loadWreahouse();
           newHouseModal.value = false;
         });
     }
@@ -298,36 +296,42 @@ function closeNewHouseModal() {
   newHouseForm.otherType = "";
 }
 function loadHouseTypeList() {
-  baseAxios.get("/warehouse/queryHouseTypeList").then((res) => {
-    Object.assign(houseTypeOptions, res.data.result);
-    houseTypeOptions.push({
+  baseAxios.get("/warehouse/getHouseTypeList").then((res) => {
+    houseTypeOptions.value = res.data.result
+    houseTypeOptions.value.push({
       htid: -1,
-      value: "其它类型",
+      typeName: "其它类型",
     });
   });
 }
 function loadWreahouse() {
-  baseAxios.get("/warehouse/getWarehouseList").then((res) => {
-    res.data.result.forEach((house: IHouse) => {
-      warehouseInfo.push({
-        id: house.hid,
-        name: house.houseName,
-        hsid: house.hsid,
-        status: {
-          value: house.value,
-          label: house.style === "def" ? "default" : house.style,
-        },
-        type: house.typeName,
-        houseArea: house.houseArea,
-        capacity: house.capacity,
+  baseAxios
+    .get("/warehouse/getWarehouseList")
+    .then((res) => {
+      const list:IWarehouseInfo[] = [];
+      res.data.result.forEach((house: IHouse) => {
+        list.push({
+          id: house.hid,
+          name: house.houseName,
+          hsid: house.hsid,
+          status: {
+            value: house.value,
+            label: house.style === "def" ? "default" : house.style,
+          },
+          type: house.typeName,
+          houseArea: house.houseArea,
+          capacity: house.capacity,
+        });
       });
+      warehouseInfo.value = list;
+    })
+    .catch((err) => {
+      message.error(err);
     });
-    }).catch((err) => {
-      message.error(err)
-  });
 }
 onMounted(async () => {
   loadWreahouse();
+  loadHouseTypeList();
 });
 </script>
 <template>
@@ -441,7 +445,7 @@ onMounted(async () => {
             v-model:value="newHouseForm.houseType"
             :options="houseTypeOptions"
             placeholder="请选择仓库类型"
-            label-field="value"
+            label-field="typeName"
             value-field="htid"
             style="width: 100%"
             :class="{ otherType: newHouseForm.houseType === -1 }"
