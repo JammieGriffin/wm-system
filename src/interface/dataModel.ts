@@ -39,7 +39,7 @@ export type INewHouseForm = {
   houseType: number | null;
   houseArea: number;
   capacity: number;
-  otherType?: string;
+  otherType?: string|null;
 };
 export interface IHouseDetialInfo {
   houseName: string;

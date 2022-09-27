@@ -12,11 +12,11 @@ export interface INewHouse {
   type: number;
   area: number;
   capacity: number;
-  typeName?: string;
+  typeName?: string | null;
 }
 export interface IHouseType {
   htid: number;
-  value: string;
+  typeName: string;
 }
 export interface IHouse {
   hid: string;

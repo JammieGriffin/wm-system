@@ -17,7 +17,7 @@ import { ReloadOutline, SearchOutline } from "@vicons/ionicons5";
 import { DataTableColumns, NButton, useMessage } from "naive-ui";
 import { useRouter, useRoute } from "vue-router";
 import { baseAxios } from "../../const";
-import { IMember } from "../../api/data";
+import { IHouseType, IMember } from "../../api/data";
 
 const message = useMessage();
 const router = useRouter();
@@ -64,9 +64,19 @@ function loadBaseInfo() {
       Object.assign(detialInfo,data)
     });
 }
+function loadStatusList(){
+  baseAxios.get("/warehouse/detial/getWarehouseStatus").then((res)=>{
+    houseStatusOptions.value = res.data.result;
+  })
+}
+function loadTypeList(){
+  baseAxios.get("/warehouse/getHouseTypeList").then((res) => {})
+}
 onMounted(async () => {
   await drawCapacityUsage(capacityUsageRef.value, usageData);
   loadBaseInfo();
+  loadStatusList();
+  loadTypeList();
 });
 const usageData: Array<IBaseChartData> = reactive([
   {
@@ -337,6 +347,7 @@ const maxCapacity = computed(() => {
 const actionName = ref<string>("信息修改");
 const houseAdminOptions: Array<string> = reactive([]);
 const houseStaffOptions: Array<string> = reactive([]);
+const houseStatusOptions = ref<Array<IHouseType>>([]); 
 const emptyForm = () => {
   return {
     baseInfo: {
@@ -574,7 +585,7 @@ function closeModal(): void {
             </n-input-number>
           </n-form-item>
           <n-form-item label="仓库状态">
-            <n-select v-model:value="detialInfo.status.value" :options="[]" />
+            <n-select v-model:value="detialInfo.status.value" :options="houseStatusOptions" value-field="hsid" label-field="value" />
           </n-form-item>
           <n-form-item label="仓库类型">
             <n-select v-model:value="detialInfo.houseType" :options="[]" />
