@@ -4,7 +4,8 @@ import { NavigateNextOutlined as next } from "@vicons/material";
 import { IOdata, IOLogData, IBaseChartData } from "../../interface/dataModel";
 import { drawIOBar, drawRoseDiagram } from "../../tools/drawCanvas";
 import { baseAxios } from "../../const";
-
+import { useMessage } from "naive-ui";
+const message = useMessage();
 const statisticData = reactive({
   warehouses: 10,
   putIn: 100,
@@ -138,7 +139,12 @@ const warehouseData: Array<IBaseChartData> = [
   },
 ];
 onMounted(async () => {
-  baseAxios.get("/ctrl/queryOverviewData").then((res) => {});
+  baseAxios
+    .get("/ctrl/queryOverviewData")
+    .then((res) => {})
+    .catch((err) => {
+      message.error(err);
+    });
   await drawIOBar(ioChartRef.value, ioData);
   await drawRoseDiagram(KWordsChartRef.value, warehouseData);
 });
