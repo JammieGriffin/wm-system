@@ -19,7 +19,7 @@ export interface IBaseChartData {
 export interface IWarehouseInfo {
   id: string;
   name: string;
-  hsid:number;
+  hsid: number;
   status: {
     value: string;
     label: string;
@@ -39,15 +39,19 @@ export type INewHouseForm = {
   houseType: number | null;
   houseArea: number;
   capacity: number;
-  otherType?: string|null;
+  otherType?: string | null;
 };
 export interface IHouseDetialInfo {
   houseName: string;
   houseId: string;
   houseAddr: string;
-  houseType: string;
+  houseType: {
+    htid:number;
+    typeName:string;
+  };
   capacity: number;
   status: {
+    hsid: number;
     label: string;
     value: string;
   };
@@ -56,13 +60,25 @@ export interface IHouseDetialInfo {
   houseStaff: Array<IMember>;
 }
 export interface IQuery {
-  type: string | null;
+  type?: string | null;
   keyWord: string;
-  startDate: string;
-  endDate: string;
+  startDate?: string;
+  endDate?: string;
 }
 export interface IODetialData extends IOLogData {
   logID: string;
   count: number;
   remark: string;
+}
+
+
+//pmc
+export interface IPmcTableData {
+  cid:string;
+  cargoName:string;
+  tags:Array<{ctid:number,typeName:string}>;
+  quantity?:number;
+}
+export interface IPmcTableQuery extends IQuery{
+  ctid:number;
 }
