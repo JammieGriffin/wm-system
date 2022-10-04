@@ -34,3 +34,10 @@ export interface IMember {
   usrType?: string;
   style?: string;
 }
+
+/*** pmc ***/
+export interface ICargoType{
+  typeName:string;
+  num:number;
+  ctid:number;
+}
