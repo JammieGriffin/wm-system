@@ -14,7 +14,13 @@ import {
 } from "@vicons/material";
 import { UserMultiple } from "@vicons/carbon";
 import { ReloadOutline, SearchOutline } from "@vicons/ionicons5";
-import { DataTableColumns, NButton, useMessage } from "naive-ui";
+import {
+  DataTableColumns,
+  FormInst,
+  FormItemRule,
+  NButton,
+  useMessage,
+} from "naive-ui";
 import { useRouter, useRoute } from "vue-router";
 import { baseAxios } from "../../const";
 import { IHouseType, IMember } from "../../api/data";
@@ -24,7 +30,7 @@ const router = useRouter();
 const route = useRoute();
 
 const capacityUsageRef = ref();
-function loadBaseInfo() {
+async function loadBaseInfo() {
   baseAxios
     .get(`/warehouse/detial/queryBaseInfo?id=${route.params.id}`)
     .then((res) => {
@@ -34,7 +40,9 @@ function loadBaseInfo() {
         houseName,
         houseAddr,
         houseArea,
+        htid,
         typeName,
+        hsid,
         value,
         style,
         member,
@@ -42,35 +50,43 @@ function loadBaseInfo() {
       } = res.data.result;
       let admin;
       let staff: Array<IMember> = [];
-      member.forEach((m:IMember) => {
+      member.forEach((m: IMember) => {
         m.usrType === "staff"
           ? staff.push(m)
-          : (admin = { uid: m.uid, name: m.usrName, style: "error" });
-      })
+          : (admin = { uid: m.uid, name: m.usrName });
+      });
+      console.log(admin);
+
       const data = {
         houseName,
         houseId: hid,
         houseAddr,
-        houseType: typeName,
+        houseType: {
+          htid,
+          typeName,
+        },
         capacity,
         status: {
+          hsid,
           label: style,
           value,
         },
         houseArea,
-        houseAdmin:admin?admin:{uid:"",usrName:"未指定负责人",style:"defalut"},
-        houseStaff:staff
+        houseAdmin: admin,
+        houseStaff: staff,
       };
-      Object.assign(detialInfo,data)
+      Object.assign(detialInfo, data);
     });
 }
-function loadStatusList(){
-  baseAxios.get("/warehouse/detial/getWarehouseStatus").then((res)=>{
+function loadStatusList() {
+  baseAxios.get("/warehouse/detial/getWarehouseStatus").then((res) => {
     houseStatusOptions.value = res.data.result;
-  })
+  });
 }
-function loadTypeList(){
-  baseAxios.get("/warehouse/getHouseTypeList").then((res) => {})
+function loadTypeList() {
+  baseAxios.get("/warehouse/getHouseTypeList").then((res) => {
+    houseTypeOptions.value = res.data.result;
+  });
 }
 onMounted(async () => {
   await drawCapacityUsage(capacityUsageRef.value, usageData);
@@ -108,17 +124,20 @@ const detialInfo: IHouseDetialInfo = reactive({
   houseName: "",
   houseId: "",
   houseAddr: "",
-  houseType: "",
+  houseType: {
+    htid: -1,
+    typeName: "",
+  },
   capacity: -1,
   status: {
+    hsid: -1,
     label: "",
     value: "",
   },
   houseArea: -1,
   houseAdmin: {
-    uid:"",
-    usrName:"",
-    style:""
+    uid: "",
+    usrName: "",
   },
   houseStaff: [],
 });
@@ -339,34 +358,87 @@ const updateInfoModal = ref<boolean>(false);
 const isTrading = ref<boolean>(false); //是否为出入口操作标志
 const isPersonnelChange = ref<boolean>(false);
 const minCapacity = computed(() => {
-  return Math.round(detialInfo.houseArea * 0.3 * 50);
+  return Math.round(modalForm.baseInfo.houseArea * 0.3 * 50);
 });
 const maxCapacity = computed(() => {
-  return Math.round(detialInfo.houseArea * 0.6 * 50);
+  return Math.round(modalForm.baseInfo.houseArea * 0.6 * 50);
 });
 const actionName = ref<string>("信息修改");
+const modalFormRef = ref<FormInst | null>(null);
 const houseAdminOptions: Array<string> = reactive([]);
 const houseStaffOptions: Array<string> = reactive([]);
-const houseStatusOptions = ref<Array<IHouseType>>([]); 
+const houseStatusOptions = ref<Array<IHouseType>>([]);
+const houseTypeOptions = ref<Array<IHouseType>>([]);
+const modalRules = {
+  baseInfo: {
+    houseName: {
+      key: "baseInfo",
+      required: true,
+      message: "请输入仓库名称",
+      trigger: blur,
+    },
+    houseAddr: {
+      key: "baseInfo",
+      required: true,
+      message: "请输入仓库地址",
+      trigger: blur,
+    },
+    houseArea: {
+      key: "baseInfo",
+      type: "number",
+      required: true,
+      message: "请输入仓库面积",
+      trigger: blur,
+    },
+    capacity: [
+      {
+        key: "baseInfo",
+        required: true,
+        validator(rule: FormItemRule, value: number) {
+          if (value === 0) {
+            return new Error("请输入仓库容量");
+          }
+        },
+        trigger: blur,
+      },
+      {
+        key: "baseInfo",
+        required: true,
+        validator(rule: FormItemRule, value: number) {
+          if (modalForm.baseInfo.houseArea === 0) {
+            return new Error("请先输入仓库面积");
+          }
+          return true;
+        },
+        trigger: "input",
+      },
+    ],
+  },
+};
 const emptyForm = () => {
   return {
     baseInfo: {
+      houseName: "",
       houseAddr: "",
       houseArea: 0,
-      houseType: "",
+      houseType: {
+        htid: -1,
+        typeName: "",
+      },
+      houseId: "",
       status: {
-        label: "",
+        hsid: -1,
         value: "",
       },
       capacity: 0,
     },
     personnel: {
       houseAdmin: {
-        uid:"",
-        usrName:"未指定负责人",
-        style:"defalut"
+        uid: "",
+        usrName: "未指定负责人",
+        style: "defalut",
       },
-      houseStaff: [{uid:"",usrName:""}],
+      houseStaff: [{ uid: "", usrName: "" }],
     },
     trading: {
       houst: "",
@@ -385,26 +457,37 @@ function openModal(action: string): void {
   actionName.value = action;
   switch (action) {
     case "修改基本信息":
-      const { houseAddr, houseArea, houseType, status, capacity } = detialInfo;
+      const { hsid, value } = detialInfo.status;
+      const { htid, typeName } = detialInfo.houseType;
+      const { houseName, houseId, houseAddr, houseArea, houseType, capacity } =
+        detialInfo;
       modalForm.baseInfo = {
+        houseName,
+        houseId,
         houseAddr,
         houseArea,
-        houseType,
-        status,
+        houseType: {
+          htid,
+          typeName,
+        },
+        status: {
+          hsid,
+          value,
+        },
         capacity,
       };
       isTrading.value = false;
       isPersonnelChange.value = false;
       break;
-    // case "人员变动":
-    //   const { houseAdmin, houseStaff } = detialInfo;
-    //   modalForm.personnel = {
-    //     houseAdmin: houseAdmin.uid ? houseAdmin : {uid:"",usrName:"未指定负责人"} as IMember,
-    //     houseStaff: houseStaff ? houseStaff.usrName : [{uid:"",usrName:""}],
-    //   };
-    //   isTrading.value = false;
-    //   isPersonnelChange.value = true;
-    //   break;
+    case "人员变动":
+      //   const { houseAdmin, houseStaff } = detialInfo;
+      //   modalForm.personnel = {
+      //     houseAdmin: houseAdmin.uid ? houseAdmin : {uid:"",usrName:"未指定负责人"} as IMember,
+      //     houseStaff: houseStaff ? houseStaff.usrName : [{uid:"",usrName:""}],
+      //   };
+      isTrading.value = false;
+      isPersonnelChange.value = true;
+      break;
     default:
       isTrading.value = true;
       isPersonnelChange.value = false;
@@ -412,6 +495,32 @@ function openModal(action: string): void {
   }
   updateInfoModal.value = true;
 }
+function updateBaseInfo() {
+  console.log(modalForm.baseInfo);
+  modalFormRef.value?.validate(
+    (err) => {
+      if (!err) {
+        baseAxios
+          .post("/warehouse/detial/updateBaseInfo", modalForm.baseInfo)
+          .then(async (res) => {
+            await loadBaseInfo();
+            message.success(res.data.message);
+          })
+          .catch((err) => {
+            message.error(err);
+          })
+          .finally(() => {
+            updateInfoModal.value = false;
+          });
+      }
+    },
+    (rule) => {
+      return rule?.key === "baseInfo";
+    }
+  );
+}
+function updateStaffInfo() {}
+function submitTrading() {}
 function closeModal(): void {
   Object.assign(modalForm, emptyForm());
   isTrading.value = false;
@@ -433,7 +542,7 @@ function closeModal(): void {
             <n-text>{{ detialInfo.houseAddr }}</n-text>
           </n-descriptions-item>
           <n-descriptions-item label="仓库类型">
-            <n-text>{{ detialInfo.houseType }}</n-text>
+            <n-text>{{ detialInfo.houseType.typeName }}</n-text>
           </n-descriptions-item>
           <n-descriptions-item label="仓库容量">
             <n-text>{{ detialInfo.capacity + "单位" }}</n-text>
@@ -442,12 +551,10 @@ function closeModal(): void {
             <n-text>{{ detialInfo.houseArea + "平方米" }}</n-text>
           </n-descriptions-item>
           <n-descriptions-item label="仓库负责人">
-            <n-tag
-              :type="detialInfo.houseAdmin.style"
-              round
-              style="cursor: pointer"
-              >{{ detialInfo.houseAdmin.usrName }}</n-tag
-            >
+            <n-tag round v-if="!detialInfo.houseAdmin">未指定负责人</n-tag>
+            <n-tag round type="error" style="cursor: pointer" v-else>{{
+              detialInfo.houseAdmin.usrName
+            }}</n-tag>
           </n-descriptions-item>
           <n-descriptions-item label="仓库状态">
             <n-tag :bordered="false" :type="detialInfo.status.label" round>
@@ -456,12 +563,16 @@ function closeModal(): void {
           </n-descriptions-item>
           <n-descriptions-item label="仓库员工">
             <n-space>
+              <n-tag round v-if="detialInfo.houseStaff.length === 0"
+                >未添加仓库员工</n-tag
+              >
               <n-tag
                 v-for="(staff, index) in detialInfo.houseStaff"
                 :key="index"
                 type="info"
                 round
                 style="cursor: pointer"
+                v-else
                 >{{ staff.usrName }}</n-tag
               >
             </n-space>
@@ -543,7 +654,7 @@ function closeModal(): void {
   </n-grid>
   <n-modal v-model:show="updateInfoModal" @after-leave="closeModal">
     <n-card style="width: 30vw" :title="actionName" id="modalCard">
-      <n-form :model="modalForm">
+      <n-form :model="modalForm" ref="modalFormRef" :rules="modalRules">
         <n-descriptions :column="1" label-placement="left">
           <n-descriptions-item label="当前仓库是" v-if="isTrading">{{
             detialInfo.houseName
@@ -554,15 +665,26 @@ function closeModal(): void {
         </n-descriptions>
         <n-divider />
         <div v-if="!isTrading && !isPersonnelChange">
-          <n-form-item label="仓库名称">
-            <n-input v-model:value="detialInfo.houseName" />
+          <n-form-item label="仓库名称" path="baseInfo.houseName">
+            <n-input v-model:value="modalForm.baseInfo.houseName" />
           </n-form-item>
-          <n-form-item label="仓库地址">
-            <n-input v-model:value="detialInfo.houseAddr" />
+          <n-form-item label="仓库地址" path="baseInfo.houseAddr">
+            <n-input v-model:value="modalForm.baseInfo.houseAddr" />
           </n-form-item>
-          <n-form-item label="仓库容量">
+          <n-form-item label="仓库面积" path="baseInfo.houseArea">
             <n-input-number
-              v-model:value="detialInfo.capacity"
+              v-model:value="modalForm.baseInfo.houseArea"
+              min="0"
+              style="width: 100%"
+            >
+              <template #suffix>
+                <span style="color: #afb0b2">平方米</span>
+              </template>
+            </n-input-number>
+          </n-form-item>
+          <n-form-item label="仓库容量" path="baseInfo.capacity">
+            <n-input-number
+              v-model:value="modalForm.baseInfo.capacity"
               :min="minCapacity"
               :max="maxCapacity"
               step="1000"
@@ -574,21 +696,21 @@ function closeModal(): void {
               </template>
             </n-input-number>
           </n-form-item>
-          <n-form-item label="仓库面积">
-            <n-input-number
-              v-model:value="detialInfo.houseArea"
-              style="width: 100%"
-            >
-              <template #suffix>
-                <span style="color: #afb0b2">平方米</span>
-              </template>
-            </n-input-number>
-          </n-form-item>
           <n-form-item label="仓库状态">
-            <n-select v-model:value="detialInfo.status.value" :options="houseStatusOptions" value-field="hsid" label-field="value" />
+            <n-select
+              v-model:value="modalForm.baseInfo.status.hsid"
+              :options="houseStatusOptions"
+              value-field="hsid"
+              label-field="value"
+            />
           </n-form-item>
           <n-form-item label="仓库类型">
-            <n-select v-model:value="detialInfo.houseType" :options="[]" />
+            <n-select
+              v-model:value="modalForm.baseInfo.houseType.htid"
+              :options="houseTypeOptions"
+              value-field="htid"
+              label-field="typeName"
+            />
           </n-form-item>
         </div>
         <!-- <div v-if="isPersonnelChange">
@@ -612,8 +734,19 @@ function closeModal(): void {
           <n-form-item></n-form-item>
         </div>
         <n-space justify="end">
-          <n-button type="primary" v-if="!isTrading">修改</n-button>
-          <n-button type="primary" v-else>确定</n-button>
+          <n-button
+            type="primary"
+            v-if="!isTrading && !isPersonnelChange"
+            @click="updateBaseInfo"
+            >修改</n-button
+          >
+          <n-button
+            type="primary"
+            v-else-if="isPersonnelChange"
+            @click="updateStaffInfo"
+            >修改</n-button
+          >
+          <n-button type="primary" v-else @click="submitTrading">确定</n-button>
           <n-button @click="updateInfoModal = false">取消</n-button>
         </n-space>
       </n-form>
