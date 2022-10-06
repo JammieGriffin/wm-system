@@ -1,18 +1,37 @@
 <script setup lang="ts">
 import { SearchOutline, ReloadOutline } from "@vicons/ionicons5";
 import { PlusOutlined } from "@vicons/material";
-import { DataTableColumns, NButton, NTag, NSpace, useMessage } from "naive-ui";
+import {
+  DataTableColumns,
+  NButton,
+  NTag,
+  NSpace,
+  useMessage,
+  FormInst,
+} from "naive-ui";
 import { h, onBeforeMount, onMounted, reactive, ref, VNode } from "vue";
 import { ICargoType } from "../../api/data";
 import { baseAxios } from "../../const";
-import { IPmcTableData, IPmcTableQuery } from "../../interface/dataModel";
+import {
+  IPmcForm,
+  IPmcFormOption,
+  IPmcTableData,
+  IPmcTableQuery,
+} from "../../interface/dataModel";
 const message = useMessage();
-const tableQuery: IPmcTableQuery = {
-  ctid: -1,
-  keyWord: "",
-};
+const tableQuery: IPmcTableQuery = reactive({
+  ctid: null,
+  keyWord: null,
+});
+
+function initScreen() {
+  tableQuery.ctid = null;
+  tableQuery.keyWord = null;
+  loadMaterialList();
+}
 function loadMaterialTypes() {
-  baseAxios.get("/pmc/getCargoTypes").then((res) => {
+  baseAxios.get("/pmc/getUsageCargoTypes").then((res) => {
+    if(materialTypes.value) materialTypes.value = [];
     res.data.result.forEach((tag: ICargoType) => {
       materialTypes.value.push({
         label: tag.typeName,
@@ -21,45 +40,80 @@ function loadMaterialTypes() {
       });
     });
   });
+  baseAxios.get("/pmc/getAllCargoTypes").then((res) => {
+    Object.assign(formOptions, res.data.result);
+  });
 }
 function loadMaterialList() {
+  const { ctid, keyWord } = tableQuery;
+  const { page, pageSize } = pagination;
   baseAxios
-    .get("/pmc/getCargos")
+    .get("/pmc/getCargos", {
+      params: { ctid, keyWord, page, pageSize },
+    })
     .then((res) => {
+      if (tableData.value) tableData.value = [];
       res.data.result.forEach((cargo: any) => {
         const { cid, cname, tags } = cargo;
         tableData.value.push({ cid, cargoName: cname, tags });
       });
     })
-    .catch((err) => {});
+    .catch((err) => {
+      message.error(err);
+    });
 }
+
+/*** 添加物料表单 ***/
+const formOptions: Array<IPmcFormOption> = reactive([]);
+const materialFormRef = ref<FormInst | null>(null);
+const addMaterialModal = ref<boolean>(false);
+const materialForm: IPmcForm = reactive({
+  cname: null,
+  tags: null,
+});
+const materialFormRules = {};
+
+function initForm() {
+  Object.keys(materialForm).map((key) => {
+    materialForm[key] = null;
+  });
+}
+function onAdd(){
+  console.log(materialForm)
+  baseAxios.post("/pmc/addCargo",materialForm).then((res) => {
+    message.success(res.data.message);
+  }).catch((err) => {
+    message.error(err)
+  }).finally(() => {
+    loadMaterialList();
+    loadMaterialTypes();
+    addMaterialModal.value = false;
+  })
+}
+
 onMounted(() => {
   loadMaterialTypes();
   loadMaterialList();
 });
 
-function screenType(node: any) {
-  baseAxios
-    .get(`/pmc/getCargos?ctid=${node.ctid}&keyword=${tableQuery.keyWord}`)
-    .then((res) => {
-      tableData.value = [];
-      res.data.result.forEach((cargo: any) => {
-        const { cid, cname, tags } = cargo;
-        tableData.value.push({ cid, cargoName: cname, tags });
-      });
-    });
-}
 /*** 物料标签 ***/
 //标签列表
 const materialTypes = ref<Array<Object>>([]);
 //标签渲染
-function renderTags(tag: { label: string; value: number }, index: number) {
+function renderTags(
+  tag: { label: string; value: number; ctid: number },
+  index: number
+) {
   return h(
     NTag,
     {
       type: "info",
       style: "cursor:pointer",
-      onClick: () => screenType(tag),
+      onClick: () => {
+        tableQuery.ctid = tag.ctid;
+        pagination.page = 1;
+        loadMaterialList();
+      },
     },
     { default: () => tag.label + `（${tag.value}）` }
   );
@@ -79,6 +133,10 @@ const addNewTag = (submit: Function, closeInput: Function) => {
           label: newTagName.value,
           value: 0,
           ctid: res.data.ctid,
+        });
+        formOptions.push({
+          ctid: res.data.ctid,
+          typeName: newTagName.value,
         });
       })
       .catch((err) => {
@@ -188,7 +246,7 @@ const tableData = ref<Array<IPmcTableData>>([]);
       <n-card title="物料信息">
         <n-space>
           <n-input v-model:value="tableQuery.keyWord" placeholder="关键字" />
-          <n-button type="primary" secondary>
+          <n-button type="primary" secondary @click="loadMaterialList">
             <template #icon>
               <n-icon>
                 <SearchOutline />
@@ -196,7 +254,7 @@ const tableData = ref<Array<IPmcTableData>>([]);
             </template>
             搜索
           </n-button>
-          <n-button secondary>
+          <n-button secondary @click="initScreen">
             <template #icon>
               <n-icon>
                 <ReloadOutline />
@@ -204,7 +262,7 @@ const tableData = ref<Array<IPmcTableData>>([]);
             </template>
             重置
           </n-button>
-          <n-button type="primary" secondary>
+          <n-button type="primary" secondary @click="addMaterialModal = true">
             <template #icon>
               <n-icon>
                 <PlusOutlined />
@@ -243,6 +301,36 @@ const tableData = ref<Array<IPmcTableData>>([]);
       </n-card>
     </n-gi>
   </n-grid>
+  <n-modal v-model:show="addMaterialModal" @after-leave="initForm">
+    <n-card style="width: 30vw" title="添加物料信息">
+      <n-form
+        :model="materialForm"
+        ref="materialFormRef"
+        :rules="materialFormRules"
+      >
+        <n-form-item label="物料名称">
+          <n-input
+            v-model:value="materialForm.cname"
+            placeholder="请输入物料名称"
+          />
+        </n-form-item>
+        <n-form-item label="物料标签">
+          <n-select
+            multiple
+            :options="formOptions"
+            v-model:value="materialForm.tags"
+            label-field="typeName"
+            value-field="ctid"
+            placeholder="请选择物料标签"
+          ></n-select>
+        </n-form-item>
+        <n-space justify="end">
+          <n-button type="primary" @click="onAdd">添加</n-button>
+          <n-button>取消</n-button>
+        </n-space>
+      </n-form>
+    </n-card>
+  </n-modal>
 </template>
 <style lang="scss" scoped>
 .n-card {

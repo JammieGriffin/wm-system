@@ -46,8 +46,8 @@ export interface IHouseDetialInfo {
   houseId: string;
   houseAddr: string;
   houseType: {
-    htid:number;
-    typeName:string;
+    htid: number;
+    typeName: string;
   };
   capacity: number;
   status: {
@@ -61,7 +61,7 @@ export interface IHouseDetialInfo {
 }
 export interface IQuery {
   type?: string | null;
-  keyWord: string;
+  keyWord: string | null;
   startDate?: string;
   endDate?: string;
 }
@@ -71,14 +71,23 @@ export interface IODetialData extends IOLogData {
   remark: string;
 }
 
-
 //pmc
 export interface IPmcTableData {
-  cid:string;
-  cargoName:string;
-  tags:Array<{ctid:number,typeName:string}>;
-  quantity?:number;
+  cid: string;
+  cargoName: string;
+  tags: Array<{ ctid: number; typeName: string }>;
+  quantity?: number;
 }
-export interface IPmcTableQuery extends IQuery{
-  ctid:number;
+export interface IPmcTableQuery extends IQuery {
+  ctid: number | null;
+}
+
+export interface IPmcForm {
+  cname: string | null;
+  tags: Array<number> | null;
+  [key: string]: string | Array<number> | null;
+}
+export interface IPmcFormOption {
+  ctid: number;
+  typeName: string;
 }
