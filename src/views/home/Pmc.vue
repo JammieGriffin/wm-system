@@ -9,7 +9,7 @@ import {
   useMessage,
   FormInst,
 } from "naive-ui";
-import { h, onBeforeMount, onMounted, reactive, ref, VNode } from "vue";
+import { h, onBeforeMount, onMounted, reactive, ref, VNode, watch } from "vue";
 import { ICargoType } from "../../api/data";
 import { baseAxios } from "../../const";
 import {
@@ -17,6 +17,7 @@ import {
   IPmcFormOption,
   IPmcTableData,
   IPmcTableQuery,
+  IPmcTagManageForm,
 } from "../../interface/dataModel";
 const message = useMessage();
 const tableQuery: IPmcTableQuery = reactive({
@@ -31,7 +32,7 @@ function initScreen() {
 }
 function loadMaterialTypes() {
   baseAxios.get("/pmc/getUsageCargoTypes").then((res) => {
-    if(materialTypes.value) materialTypes.value = [];
+    if (materialTypes.value) materialTypes.value = [];
     res.data.result.forEach((tag: ICargoType) => {
       materialTypes.value.push({
         label: tag.typeName,
@@ -54,8 +55,8 @@ function loadMaterialList() {
     .then((res) => {
       if (tableData.value) tableData.value = [];
       res.data.result.forEach((cargo: any) => {
-        const { cid, cname, tags } = cargo;
-        tableData.value.push({ cid, cargoName: cname, tags });
+        const { cid, cname, tags,quantity } = cargo;
+        tableData.value.push({ cid, cargoName: cname, tags,quantity });
       });
     })
     .catch((err) => {
@@ -78,17 +79,21 @@ function initForm() {
     materialForm[key] = null;
   });
 }
-function onAdd(){
-  console.log(materialForm)
-  baseAxios.post("/pmc/addCargo",materialForm).then((res) => {
-    message.success(res.data.message);
-  }).catch((err) => {
-    message.error(err)
-  }).finally(() => {
-    loadMaterialList();
-    loadMaterialTypes();
-    addMaterialModal.value = false;
-  })
+function onAdd() {
+  console.log(materialForm);
+  baseAxios
+    .post("/pmc/addCargo", materialForm)
+    .then((res) => {
+      message.success(res.data.message);
+    })
+    .catch((err) => {
+      message.error(err);
+    })
+    .finally(() => {
+      loadMaterialList();
+      loadMaterialTypes();
+      addMaterialModal.value = false;
+    });
 }
 
 onMounted(() => {
@@ -150,10 +155,10 @@ const addNewTag = (submit: Function, closeInput: Function) => {
 };
 const createTableColumn = ({
   viewDestribution,
-  addTags,
+  tagsManage,
 }: {
   viewDestribution: (rowData: IPmcTableData) => void;
-  addTags: (rowData: IPmcTableData) => void;
+  tagsManage: (rowData: IPmcTableData) => void;
 }): DataTableColumns<IPmcTableData> => {
   return [
     {
@@ -181,10 +186,12 @@ const createTableColumn = ({
             {
               type: "info",
             },
-            { default: () => v.typeName }
+            {
+              default: () => v.typeName,
+              value: () => v.ctid,
+            }
           );
           tags.push(tag);
-          console.log(tags);
         });
         return h(NSpace, () => [...tags]);
       },
@@ -208,7 +215,7 @@ const createTableColumn = ({
             {
               text: true,
               type: "primary",
-              onClick: () => addTags(row),
+              onClick: () => tagsManage(row),
             },
             { default: () => "标签管理" }
           ),
@@ -220,9 +227,17 @@ const createTableColumn = ({
 const tableColumn = createTableColumn({
   viewDestribution(rowData: IPmcTableData) {
     console.log(rowData);
+    distributeModal.value=true;
   },
-  addTags(rowData: IPmcTableData) {
-    console.log(rowData);
+  tagsManage(rowData: IPmcTableData) {
+    tagManageModal.value = true;
+    tagManageForm.cid = rowData.cid;
+    tagManageForm.cname = rowData.cargoName;
+    const tags = rowData.tags.map((item) => {
+      return item.ctid;
+    });
+    tagManageForm.currentTags = tags;
+    tagManageForm.initalTags = tags;
   },
 });
 const pagination = reactive({
@@ -238,7 +253,56 @@ const pagination = reactive({
     pagination.page = 1;
   },
 });
+
+//tableModal
+const tagManageModal = ref<boolean>(false);
+const tagManageForm: IPmcTagManageForm = reactive({
+  cid: "",
+  cname: "",
+  currentTags: [],
+  initalTags: [],
+});
+function updateCargoTags() {
+  const { currentTags, initalTags, cid } = tagManageForm;
+  const diff_add = currentTags.filter((ctid: number) => {
+    return !initalTags.includes(ctid);
+  });
+  const temp = currentTags.filter((ctid: number) => {
+    return !diff_add.includes(ctid);
+  });
+  const diff_del = initalTags.filter((ctid: number) => {
+    return !temp.includes(ctid);
+  });
+  if (diff_add.length > 0 || diff_del.length > 0) {
+    baseAxios
+      .post("/pmc/updateCargoTypes", { cid, del: diff_del, add: diff_add })
+      .then((res) => {
+        message.success(res.data.message);
+      })
+      .catch((err) => {
+        message.error(err);
+      })
+      .finally(() => {
+        loadMaterialList();
+        tagManageModal.value = false;
+      });
+  } else {
+    tagManageModal.value = false;
+  }
+}
+const distributeModal = ref<boolean>(false);
+function initDistributeData(){}
+function initTagManageForm() {
+  Object.keys(tagManageForm).map((key: string) => {
+    if (typeof tagManageForm[key] === "string") {
+      tagManageForm[key] = "";
+    } else {
+      tagManageForm[key] = [];
+    }
+  });
+}
 const tableData = ref<Array<IPmcTableData>>([]);
+const distributeData = ref<Array<number>>([]);
 </script>
 <template>
   <n-grid :cols="1">
@@ -246,7 +310,16 @@ const tableData = ref<Array<IPmcTableData>>([]);
       <n-card title="物料信息">
         <n-space>
           <n-input v-model:value="tableQuery.keyWord" placeholder="关键字" />
-          <n-button type="primary" secondary @click="loadMaterialList">
+          <n-button
+            type="primary"
+            secondary
+            @click="
+              () => {
+                pagination.page=1;
+                loadMaterialList();
+              }
+            "
+          >
             <template #icon>
               <n-icon>
                 <SearchOutline />
@@ -329,6 +402,40 @@ const tableData = ref<Array<IPmcTableData>>([]);
           <n-button>取消</n-button>
         </n-space>
       </n-form>
+    </n-card>
+  </n-modal>
+  <n-modal v-model:show="tagManageModal" @after-leave="initTagManageForm">
+    <n-card style="width: 30vw" title="物料标签管理">
+      <n-descriptions :columns="1" label-placement="left">
+        <n-descriptions-item label="物料编号">{{
+          tagManageForm.cid
+        }}</n-descriptions-item>
+        <n-descriptions-item label="物料名称">{{
+          tagManageForm.cname
+        }}</n-descriptions-item>
+      </n-descriptions>
+      <n-divider />
+      <n-form-item label="物料标签">
+        <n-select
+          multiple
+          v-model:value="tagManageForm.currentTags"
+          label-field="typeName"
+          value-field="ctid"
+          placeholder="请选择物料标签"
+          :options="formOptions"
+        ></n-select>
+      </n-form-item>
+      <n-space justify="end">
+        <n-button type="primary" @click="updateCargoTags">确定</n-button>
+        <n-button>取消</n-button>
+      </n-space>
+    </n-card>
+  </n-modal>
+  <n-modal v-model:show="distributeModal" @after-leave="initDistributeData">
+    <n-card style="width:66vw" title="物料分布">
+      <n-empty v-if="distributeData.length === 0"></n-empty>
+      <div style="width:80%;height:500px" v-else></div>
+      
     </n-card>
   </n-modal>
 </template>
