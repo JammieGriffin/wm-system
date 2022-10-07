@@ -91,3 +91,24 @@ export interface IPmcFormOption {
   ctid: number;
   typeName: string;
 }
+export interface IPmcTagManageForm{
+  cid:string;
+  cname:string;
+  currentTags:Array<number>;
+  initalTags:Array<number>;
+  [key:string]:string | Array<number>
+}
+
+export interface IStaffQuery extends IQuery{
+  queryType:string | null;
+}
+
+export interface IStaffTableData {
+  uid:string;
+  wno:string;
+  usrName:string;
+  sex:string;
+  usrType:string;
+  warehouseName:string;
+  
+}
