@@ -41,3 +41,15 @@ export interface ICargoType{
   num:number;
   ctid:number;
 }
+
+/*** staff ***/
+export interface IStaff{
+  uid:string;
+  wno:string;
+  usrType:string;
+  sex:string;
+  usrName:string;
+  phone:string;
+  hid:string | null;
+  houseName:string | null;
+}

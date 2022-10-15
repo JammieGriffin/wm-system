@@ -91,24 +91,45 @@ export interface IPmcFormOption {
   ctid: number;
   typeName: string;
 }
-export interface IPmcTagManageForm{
-  cid:string;
-  cname:string;
-  currentTags:Array<number>;
-  initalTags:Array<number>;
-  [key:string]:string | Array<number>
+export interface IPmcTagManageForm {
+  cid: string;
+  cname: string;
+  currentTags: Array<number>;
+  initalTags: Array<number>;
+  [key: string]: string | Array<number>;
 }
 
-export interface IStaffQuery extends IQuery{
-  queryType:string | null;
+export interface IStaffQuery {
+  queryType: string | null;
+  keyWord: string | null;
+  [key:string]:string | null;
 }
 
 export interface IStaffTableData {
-  uid:string;
-  wno:string;
-  usrName:string;
-  sex:string;
-  usrType:string;
-  warehouseName:string;
-  
+  uid: string;
+  wno: string;
+  usrName: string;
+  sex: string;
+  usrType: string;
+  warehouseName: string;
+  phone: string;
+  [key: string]: string;
+}
+export interface IStaffInfo {
+  usrName: string | null;
+  wno: string | null;
+  sex: string | null;
+  phone: string | null;
+  usrType: string | null;
+  [key: string]: string | null;
+}
+export interface IAllocForm {
+  uid: string | null;
+  currentHid: string | null;
+  currentHouseName: string | null;
+  hid: string | null;
+  usrName: string | null;
+  wno: string | null;
+  isPrincipal: boolean | null;
+  [key: string]: string | boolean | null;
 }
