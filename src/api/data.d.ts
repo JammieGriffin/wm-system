@@ -53,3 +53,15 @@ export interface IStaff{
   hid:string | null;
   houseName:string | null;
 }
+
+/*** sapwmDetial ***/
+export interface IWarehouseBSInfo{
+  houseName: string | null;
+  houseAddr: string | null;
+  houseArea: number | null;
+  houseId: string | null;
+  hsid: number | null;
+  htid: number | null;
+  capacity: number | null;
+  [key:string]: string | number | null;
+}

@@ -58,6 +58,7 @@ export interface IHouseDetialInfo {
   houseArea: number;
   houseAdmin: IMember;
   houseStaff: Array<IMember>;
+  [key: string]: string | object | number;
 }
 export interface IQuery {
   type?: string | null;
@@ -102,7 +103,7 @@ export interface IPmcTagManageForm {
 export interface IStaffQuery {
   queryType: string | null;
   keyWord: string | null;
-  [key:string]:string | null;
+  [key: string]: string | null;
 }
 
 export interface IStaffTableData {

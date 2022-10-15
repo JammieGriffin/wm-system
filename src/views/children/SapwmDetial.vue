@@ -23,7 +23,7 @@ import {
 } from "naive-ui";
 import { useRouter, useRoute } from "vue-router";
 import { baseAxios } from "../../const";
-import { IHouseType, IMember } from "../../api/data";
+import { IHouseType, IMember, IWarehouseBSInfo } from "../../api/data";
 
 const message = useMessage();
 const router = useRouter();
@@ -53,7 +53,7 @@ async function loadBaseInfo() {
       member.forEach((m: IMember) => {
         m.usrType === "staff"
           ? staff.push(m)
-          : (admin = { uid: m.uid, name: m.usrName });
+          : (admin = { uid: m.uid, usrName: m.usrName });
       });
       console.log(admin);
 
@@ -89,37 +89,12 @@ function loadTypeList() {
   });
 }
 onMounted(async () => {
-  await drawCapacityUsage(capacityUsageRef.value, usageData);
+  //await drawCapacityUsage(capacityUsageRef.value, usageData);
   loadBaseInfo();
   loadStatusList();
   loadTypeList();
 });
-const usageData: Array<IBaseChartData> = reactive([
-  {
-    name: "零件1",
-    value: 2000,
-  },
-  {
-    name: "零件2",
-    value: 3000,
-  },
-  {
-    name: "零件3",
-    value: 5000,
-  },
-  {
-    name: "零件4",
-    value: 800,
-  },
-  {
-    name: "零件5",
-    value: 1200,
-  },
-  {
-    name: "未使用",
-    value: 8000,
-  },
-]);
+const usageData: Array<IBaseChartData> = reactive([]);
 const detialInfo: IHouseDetialInfo = reactive({
   houseName: "",
   houseId: "",
@@ -354,177 +329,106 @@ const pagination = reactive({
 });
 
 // Modal
-const updateInfoModal = ref<boolean>(false);
-const isTrading = ref<boolean>(false); //是否为出入口操作标志
-const isPersonnelChange = ref<boolean>(false);
+const baseInfoModal = ref<boolean>(false);
+const baseInfoFormRef = ref<FormInst | null>(null);
 const minCapacity = computed(() => {
-  return Math.round(modalForm.baseInfo.houseArea * 0.3 * 50);
+  return Math.round((baseInfoForm.houseArea as number) * 0.3 * 50);
 });
 const maxCapacity = computed(() => {
-  return Math.round(modalForm.baseInfo.houseArea * 0.6 * 50);
+  return Math.round((baseInfoForm.houseArea as number) * 0.6 * 50);
 });
-const actionName = ref<string>("信息修改");
-const modalFormRef = ref<FormInst | null>(null);
+
 const houseAdminOptions: Array<string> = reactive([]);
 const houseStaffOptions: Array<string> = reactive([]);
 const houseStatusOptions = ref<Array<IHouseType>>([]);
 const houseTypeOptions = ref<Array<IHouseType>>([]);
 const modalRules = {
-  baseInfo: {
-    houseName: {
-      key: "baseInfo",
-      required: true,
-      message: "请输入仓库名称",
-      trigger: blur,
-    },
-    houseAddr: {
-      key: "baseInfo",
-      required: true,
-      message: "请输入仓库地址",
-      trigger: blur,
-    },
-    houseArea: {
-      key: "baseInfo",
-      type: "number",
-      required: true,
-      message: "请输入仓库面积",
-      trigger: blur,
-    },
-    capacity: [
-      {
-        key: "baseInfo",
-        required: true,
-        validator(rule: FormItemRule, value: number) {
-          if (value === 0) {
-            return new Error("请输入仓库容量");
-          }
-        },
-        trigger: blur,
-      },
-      {
-        key: "baseInfo",
-        required: true,
-        validator(rule: FormItemRule, value: number) {
-          if (modalForm.baseInfo.houseArea === 0) {
-            return new Error("请先输入仓库面积");
-          }
-          return true;
-        },
-        trigger: "input",
-      },
-    ],
+  houseName: {
+    key: "baseInfo",
+    required: true,
+    message: "请输入仓库名称",
+    trigger: blur,
   },
+  houseAddr: {
+    key: "baseInfo",
+    required: true,
+    message: "请输入仓库地址",
+    trigger: blur,
+  },
+  houseArea: {
+    key: "baseInfo",
+    type: "number",
+    required: true,
+    message: "请输入仓库面积",
+    trigger: blur,
+  },
+  capacity: [
+    {
+      key: "baseInfo",
+      required: true,
+      validator(rule: FormItemRule, value: number) {
+        if (value === 0) {
+          return new Error("请输入仓库容量");
+        }
+      },
+      trigger: blur,
+    },
+    {
+      key: "baseInfo",
+      required: true,
+      validator(rule: FormItemRule, value: number) {
+        if (baseInfoForm.houseArea === 0) {
+          return new Error("请先输入仓库面积");
+        }
+        return true;
+      },
+      trigger: "input",
+    },
+  ],
 };
-const emptyForm = () => {
-  return {
-    baseInfo: {
-      houseName: "",
-      houseAddr: "",
-      houseArea: 0,
-      houseType: {
-        htid: -1,
-        typeName: "",
-      },
-      houseId: "",
-      status: {
-        hsid: -1,
-        value: "",
-      },
-      capacity: 0,
-    },
-    personnel: {
-      houseAdmin: {
-        uid: "",
-        usrName: "未指定负责人",
-        style: "defalut",
-      },
-      houseStaff: [{ uid: "", usrName: "" }],
-    },
-    trading: {
-      houst: "",
-      logID: "",
-      name: "",
-      count: 0,
-      status: "",
-      time: "",
-      principal: "",
-      remark: "",
-    },
-  };
-};
-const modalForm = reactive(emptyForm());
-function openModal(action: string): void {
-  actionName.value = action;
-  switch (action) {
-    case "修改基本信息":
-      const { hsid, value } = detialInfo.status;
-      const { htid, typeName } = detialInfo.houseType;
-      const { houseName, houseId, houseAddr, houseArea, houseType, capacity } =
-        detialInfo;
-      modalForm.baseInfo = {
-        houseName,
-        houseId,
-        houseAddr,
-        houseArea,
-        houseType: {
-          htid,
-          typeName,
-        },
-        status: {
-          hsid,
-          value,
-        },
-        capacity,
-      };
-      isTrading.value = false;
-      isPersonnelChange.value = false;
-      break;
-    case "人员变动":
-      //   const { houseAdmin, houseStaff } = detialInfo;
-      //   modalForm.personnel = {
-      //     houseAdmin: houseAdmin.uid ? houseAdmin : {uid:"",usrName:"未指定负责人"} as IMember,
-      //     houseStaff: houseStaff ? houseStaff.usrName : [{uid:"",usrName:""}],
-      //   };
-      isTrading.value = false;
-      isPersonnelChange.value = true;
-      break;
-    default:
-      isTrading.value = true;
-      isPersonnelChange.value = false;
-      break;
-  }
-  updateInfoModal.value = true;
+const baseInfoForm: IWarehouseBSInfo = reactive({
+  houseName: null,
+  houseAddr: null,
+  houseArea: null,
+  houseId: null,
+  hsid: null,
+  htid: null,
+  capacity: null,
+});
+function openBaseInfoModal() {
+  baseInfoModal.value = true;
+  Object.keys(baseInfoForm).map((key) => {
+    if (Object.keys(detialInfo).includes(key)) {
+      baseInfoForm[key] = detialInfo[key] as string | number;
+    }
+  });
+  const { htid } = detialInfo.houseType;
+  const { hsid } = detialInfo.status;
+  baseInfoForm.hsid = hsid;
+  baseInfoForm.htid = htid;
+}
+function closeBaseInfoModal() {
+  Object.keys(baseInfoForm).map((key) => {
+    baseInfoForm[key] = null;
+  });
 }
 function updateBaseInfo() {
-  console.log(modalForm.baseInfo);
-  modalFormRef.value?.validate(
-    (err) => {
-      if (!err) {
-        baseAxios
-          .post("/warehouse/detial/updateBaseInfo", modalForm.baseInfo)
-          .then(async (res) => {
-            await loadBaseInfo();
-            message.success(res.data.message);
-          })
-          .catch((err) => {
-            message.error(err);
-          })
-          .finally(() => {
-            updateInfoModal.value = false;
-          });
-      }
-    },
-    (rule) => {
-      return rule?.key === "baseInfo";
+  baseInfoFormRef.value?.validate((err) => {
+    if (!err) {
+      baseAxios
+        .post("/warehouse/detial/updateBaseInfo", { ...baseInfoForm })
+        .then((res) => {
+          loadBaseInfo();
+          message.success(res.data.message);
+        })
+        .catch((err) => {
+          message.error(err);
+        })
+        .finally(() => {
+          baseInfoModal.value = false;
+        });
     }
-  );
-}
-function updateStaffInfo() {}
-function submitTrading() {}
-function closeModal(): void {
-  Object.assign(modalForm, emptyForm());
-  isTrading.value = false;
-  isPersonnelChange.value = false;
+  });
 }
 </script>
 <template>
@@ -581,25 +485,25 @@ function closeModal(): void {
         <template #footer>
           <n-space justify="center">
             <n-button-group>
-              <n-button round @click="openModal('修改基本信息')">
+              <n-button round @click="openBaseInfoModal">
                 <n-icon size="20">
                   <edit />
                 </n-icon>
                 信息修改
               </n-button>
-              <n-button @click="openModal('货物入库')">
+              <n-button>
                 <n-icon size="20">
                   <ICInput />
                 </n-icon>
                 货物入库
               </n-button>
-              <n-button @click="openModal('货物出库')">
+              <n-button>
                 <n-icon size="20">
                   <ICOutput />
                 </n-icon>
                 货物出库
               </n-button>
-              <n-button round @click="openModal('人员变动')">
+              <n-button round>
                 <n-icon size="20">
                   <UserMultiple />
                 </n-icon>
@@ -612,7 +516,14 @@ function closeModal(): void {
     </n-gi>
     <n-gi span="3">
       <n-card style="height: 100%" title="仓库容量使用详情" embedded>
-        <div ref="capacityUsageRef" class="canvas"></div>
+        <div
+          ref="capacityUsageRef"
+          class="canvas"
+          v-if="usageData.length > 0"
+        ></div>
+        <n-space v-else justify="center" align="center" style="height: 100%">
+          <n-empty size="huge"></n-empty>
+        </n-space>
       </n-card>
     </n-gi>
     <n-gi span="5">
@@ -652,11 +563,11 @@ function closeModal(): void {
       </n-card>
     </n-gi>
   </n-grid>
-  <n-modal v-model:show="updateInfoModal" @after-leave="closeModal">
-    <n-card style="width: 30vw" :title="actionName" id="modalCard">
-      <n-form :model="modalForm" ref="modalFormRef" :rules="modalRules">
+  <n-modal v-model:show="baseInfoModal" @after-leave="closeBaseInfoModal">
+    <n-card style="width: 30vw" title="修改基本信息" id="modalCard">
+      <n-form :model="baseInfoForm" ref="baseInfoFormRef" :rules="modalRules">
         <n-descriptions :column="1" label-placement="left">
-          <n-descriptions-item label="当前仓库是" v-if="isTrading">{{
+          <n-descriptions-item label="当前仓库是">{{
             detialInfo.houseName
           }}</n-descriptions-item>
           <n-descriptions-item label="仓库编号">{{
@@ -664,90 +575,56 @@ function closeModal(): void {
           }}</n-descriptions-item>
         </n-descriptions>
         <n-divider />
-        <div v-if="!isTrading && !isPersonnelChange">
-          <n-form-item label="仓库名称" path="baseInfo.houseName">
-            <n-input v-model:value="modalForm.baseInfo.houseName" />
-          </n-form-item>
-          <n-form-item label="仓库地址" path="baseInfo.houseAddr">
-            <n-input v-model:value="modalForm.baseInfo.houseAddr" />
-          </n-form-item>
-          <n-form-item label="仓库面积" path="baseInfo.houseArea">
-            <n-input-number
-              v-model:value="modalForm.baseInfo.houseArea"
-              min="0"
-              style="width: 100%"
-            >
-              <template #suffix>
-                <span style="color: #afb0b2">平方米</span>
-              </template>
-            </n-input-number>
-          </n-form-item>
-          <n-form-item label="仓库容量" path="baseInfo.capacity">
-            <n-input-number
-              v-model:value="modalForm.baseInfo.capacity"
-              :min="minCapacity"
-              :max="maxCapacity"
-              step="1000"
-              :precision="0"
-              style="width: 100%"
-            >
-              <template #suffix>
-                <span style="color: #afb0b2">单位</span>
-              </template>
-            </n-input-number>
-          </n-form-item>
-          <n-form-item label="仓库状态">
-            <n-select
-              v-model:value="modalForm.baseInfo.status.hsid"
-              :options="houseStatusOptions"
-              value-field="hsid"
-              label-field="value"
-            />
-          </n-form-item>
-          <n-form-item label="仓库类型">
-            <n-select
-              v-model:value="modalForm.baseInfo.houseType.htid"
-              :options="houseTypeOptions"
-              value-field="htid"
-              label-field="typeName"
-            />
-          </n-form-item>
-        </div>
-        <!-- <div v-if="isPersonnelChange">
-          <n-form-item label="仓库负责人">
-            <n-select
-              v-model:value="detialInfo.houseAdmin.uid"
-              placeholder="请选择仓库负责人"
-              :options="houseAdminOptions"
-            />
-          </n-form-item>
-          <n-form-item label="仓库员工">
-            <n-select
-              v-model:value="detialInfo.houseStaff"
-              multiple
-              :options="houseStaffOptions"
-              :max-tag-count="4"
-            />
-          </n-form-item>
-        </div> -->
-        <div v-if="isTrading">
-          <n-form-item></n-form-item>
-        </div>
+        <n-form-item label="仓库名称" path="houseName">
+          <n-input v-model:value="baseInfoForm.houseName" />
+        </n-form-item>
+        <n-form-item label="仓库地址" path="houseAddr">
+          <n-input v-model:value="baseInfoForm.houseAddr" />
+        </n-form-item>
+        <n-form-item label="仓库面积" path="houseArea">
+          <n-input-number
+            min="0"
+            style="width: 100%"
+            v-model:value="baseInfoForm.houseArea"
+          >
+            <template #suffix>
+              <span style="color: #afb0b2">平方米</span>
+            </template>
+          </n-input-number>
+        </n-form-item>
+        <n-form-item label="仓库容量" path="capacity">
+          <n-input-number
+            :min="minCapacity"
+            :max="maxCapacity"
+            step="1000"
+            :precision="0"
+            style="width: 100%"
+            v-model:value="baseInfoForm.capacity"
+          >
+            <template #suffix>
+              <span style="color: #afb0b2">单位</span>
+            </template>
+          </n-input-number>
+        </n-form-item>
+        <n-form-item label="仓库状态">
+          <n-select
+            :options="houseStatusOptions"
+            value-field="hsid"
+            label-field="value"
+            v-model:value="baseInfoForm.hsid"
+          />
+        </n-form-item>
+        <n-form-item label="仓库类型">
+          <n-select
+            :options="houseTypeOptions"
+            value-field="htid"
+            label-field="typeName"
+            v-model:value="baseInfoForm.htid"
+          />
+        </n-form-item>
         <n-space justify="end">
-          <n-button
-            type="primary"
-            v-if="!isTrading && !isPersonnelChange"
-            @click="updateBaseInfo"
-            >修改</n-button
-          >
-          <n-button
-            type="primary"
-            v-else-if="isPersonnelChange"
-            @click="updateStaffInfo"
-            >修改</n-button
-          >
-          <n-button type="primary" v-else @click="submitTrading">确定</n-button>
-          <n-button @click="updateInfoModal = false">取消</n-button>
+          <n-button type="primary" @click="updateBaseInfo">修改</n-button>
+          <n-button @click="baseInfoModal = false">取消</n-button>
         </n-space>
       </n-form>
     </n-card>
