@@ -80,7 +80,6 @@ function initForm() {
   });
 }
 function onAdd() {
-  console.log(materialForm);
   baseAxios
     .post("/pmc/addCargo", materialForm)
     .then((res) => {
@@ -177,8 +176,6 @@ const createTableColumn = ({
       title: "物料标签",
       key: "tags",
       render(row) {
-        console.log(row);
-
         const tags: Array<VNode> = [];
         row.tags.forEach((v: { ctid: number; typeName: string }) => {
           const tag = h(
@@ -226,7 +223,6 @@ const createTableColumn = ({
 };
 const tableColumn = createTableColumn({
   viewDestribution(rowData: IPmcTableData) {
-    console.log(rowData);
     distributeModal.value=true;
   },
   tagsManage(rowData: IPmcTableData) {

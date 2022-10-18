@@ -125,7 +125,6 @@ const createTableColumn = ({
 };
 const tableColumn = createTableColumn({
   allocMission(rowData) {
-    console.log(rowData);
     const keys = Object.keys(allocForm);
     Object.keys(rowData).map((key) => {
       if (keys.includes(key)) {
@@ -240,7 +239,6 @@ function getStaffs() {
 }
 function getWareHouseList() {
   baseAxios.get("/warehouse/getWarehouseList").then((res) => {
-    console.log(res);
     res.data.result.forEach((house: IHouse) => {
       const { hid, houseName } = house;
       warehouseOptions.push({
@@ -267,7 +265,6 @@ function initAllocForm() {
   });
 }
 function onAlloc() {
-  console.log(allocForm);
   if (!allocForm.hid && !allocForm.currentHid) {
     allocModal.value = false;
   } else {
