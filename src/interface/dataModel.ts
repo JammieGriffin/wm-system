@@ -67,9 +67,8 @@ export interface IQuery {
   endDate?: string;
 }
 export interface IODetialData extends IOLogData {
-  logID: string;
   count: number;
-  remark: string;
+  remark: string | null;
 }
 
 //pmc
@@ -133,4 +132,14 @@ export interface IAllocForm {
   wno: string | null;
   isPrincipal: boolean | null;
   [key: string]: string | boolean | null;
+}
+
+// sapwmDetial-trading
+export interface ITradingForm {
+  cid: string | null;
+  isPop: number | null;
+  handler: string | null;
+  quantity: number | null;
+  remark: string | null;
+  [key: string]: string | number | null;
 }

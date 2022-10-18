@@ -5,6 +5,7 @@ import {
   IHouseDetialInfo,
   IODetialData,
   IQuery,
+  ITradingForm,
 } from "../../interface/dataModel";
 import { drawCapacityUsage } from "../../tools/drawCanvas";
 import { EditSettings24Regular as edit } from "@vicons/fluent";
@@ -23,7 +24,12 @@ import {
 } from "naive-ui";
 import { useRouter, useRoute } from "vue-router";
 import { baseAxios } from "../../const";
-import { IHouseType, IMember, IWarehouseBSInfo } from "../../api/data";
+import {
+  IHouseType,
+  IMember,
+  ITradingRecord,
+  IWarehouseBSInfo,
+} from "../../api/data";
 
 const message = useMessage();
 const router = useRouter();
@@ -55,7 +61,6 @@ async function loadBaseInfo() {
           ? staff.push(m)
           : (admin = { uid: m.uid, usrName: m.usrName });
       });
-      console.log(admin);
 
       const data = {
         houseName,
@@ -94,7 +99,7 @@ onMounted(async () => {
   loadStatusList();
   loadTypeList();
 });
-const usageData: Array<IBaseChartData> = reactive([]);
+const usageData = ref<Array<IBaseChartData>>([]);
 const detialInfo: IHouseDetialInfo = reactive({
   houseName: "",
   houseId: "",
@@ -153,10 +158,6 @@ const createTableColumn = ({
       key: "host",
     },
     {
-      title: "仓库编号",
-      key: "logID",
-    },
-    {
       title: "货物名称",
       key: "name",
     },
@@ -202,118 +203,7 @@ const tableColumn = createTableColumn({
     console.log(rowData);
   },
 });
-const tableData: IODetialData[] = [
-  {
-    host: "一号仓库",
-    logID: "12318719347",
-    name: "零件1",
-    count: 1220,
-    status: "入库",
-    time: "2022-9-1",
-    principal: "老六",
-    remark: "无",
-  },
-  {
-    host: "一号仓库",
-    logID: "12318719347",
-    name: "零件1",
-    count: 1220,
-    status: "入库",
-    time: "2022-9-1",
-    principal: "老六",
-    remark: "无",
-  },
-  {
-    host: "一号仓库",
-    logID: "12318719347",
-    name: "零件1",
-    count: 1220,
-    status: "入库",
-    time: "2022-9-1",
-    principal: "老六",
-    remark: "无",
-  },
-  {
-    host: "一号仓库",
-    logID: "12318719347",
-    name: "零件1",
-    count: 1220,
-    status: "入库",
-    time: "2022-9-1",
-    principal: "老六",
-    remark: "无",
-  },
-  {
-    host: "一号仓库",
-    logID: "12318719347",
-    name: "零件1",
-    count: 1220,
-    status: "入库",
-    time: "2022-9-1",
-    principal: "老六",
-    remark: "无",
-  },
-  {
-    host: "一号仓库",
-    logID: "12318719347",
-    name: "零件1",
-    count: 1220,
-    status: "入库",
-    time: "2022-9-1",
-    principal: "老六",
-    remark: "无",
-  },
-  {
-    host: "一号仓库",
-    logID: "12318719347",
-    name: "零件1",
-    count: 1220,
-    status: "入库",
-    time: "2022-9-1",
-    principal: "老六",
-    remark: "无",
-  },
-  {
-    host: "一号仓库",
-    logID: "12318719347",
-    name: "零件1",
-    count: 1220,
-    status: "入库",
-    time: "2022-9-1",
-    principal: "老六",
-    remark: "无",
-  },
-  {
-    host: "一号仓库",
-    logID: "12318719347",
-    name: "零件1",
-    count: 1220,
-    status: "入库",
-    time: "2022-9-1",
-    principal: "老六",
-    remark: "无",
-  },
-  {
-    host: "一号仓库",
-    logID: "12318719347",
-    name: "零件1",
-    count: 1220,
-    status: "入库",
-    time: "2022-9-1",
-    principal: "老六",
-    remark: "无",
-  },
-  {
-    host: "一号仓库",
-    logID: "12318719347",
-    name: "零件1",
-    count: 1220,
-    status: "入库",
-    time: "2022-9-1",
-    principal: "老六",
-    remark: "无",
-  },
-];
+const tableData = ref<Array<IODetialData>>([]);
 const pagination = reactive({
   page: 1,
   pageSize: 5,
@@ -430,6 +320,176 @@ function updateBaseInfo() {
     }
   });
 }
+// tradingModal
+const tradingModal = ref<boolean>(false);
+const tradingName = ref<string>("");
+const materialOption = ref<Array<{ cid: string; cname: string }>>([]);
+const existMaterialOption = ref<Array<{ cid: string; cname: string }>>([]);
+const handlerOption = ref<Array<{ uid: string; usrName: string }>>([]);
+const usageCapacity = ref<number>(0);
+const popQuantity = ref<number>(0);
+const isPop = ref<boolean>(false);
+const surplusCapacity = computed(() => {
+  return detialInfo.capacity - usageCapacity.value;
+});
+
+const tradingForm: ITradingForm = reactive({
+  cid: null,
+  handler: null,
+  quantity: null,
+  remark: null,
+  isPop: null,
+});
+
+function closeTardingModal() {
+  Object.keys(tradingForm).map((key: string) => {
+    tradingForm[key] = null;
+  });
+}
+async function getHouseStaffs() {
+  const hid = route.params.id;
+  baseAxios
+    .get("/warehouse/detial/getHouseStaffs", {
+      params: { hid },
+    })
+    .then((res) => {
+      handlerOption.value = res.data.result;
+    })
+    .catch((err) => {
+      message.error(err);
+    });
+}
+async function getCargos() {
+  baseAxios
+    .get("/warehouse/detial/getCargos")
+    .then((res) => {
+      materialOption.value = res.data.result;
+    })
+    .catch((err) => {
+      message.error(err);
+    });
+}
+async function getUsageCapactiy() {
+  const hid = route.params.id;
+  baseAxios
+    .get("/warehouse/detial/getUsageCapactiy", { params: { hid } })
+    .then((res) => {
+      const { total } = res.data;
+      total ? (usageCapacity.value = total) : (usageCapacity.value = 0);
+    })
+    .catch((err) => {
+      message.error(err);
+    });
+}
+async function getExistCargos() {
+  const hid = route.params.id;
+  baseAxios
+    .get("/warehouse/detial/getExistCargos", { params: { hid } })
+    .then((res) => {
+      if (res.data.result) {
+        existMaterialOption.value = res.data.result;
+      }
+    })
+    .catch((err) => {
+      message.error(err);
+    });
+}
+async function getTradingRecord() {
+  const hid = route.params.id;
+  baseAxios
+    .get("/warehouse/detial/getTradingRecord", { params: { hid } })
+    .then((res) => {
+      res.data.result.forEach((record: ITradingRecord) => {
+        const { cname, count, hid, houseName, isPop, remark, usrName } = record;
+        const time = new Date(record.time).toLocaleString();
+        const status = isPop === 1 ? "出库" : "入库";
+        tableData.value.push({
+          host: houseName,
+          name: cname,
+          count,
+          status,
+          time,
+          principal: usrName,
+          remark,
+        });
+      });
+    });
+}
+async function getUsageData() {
+  const hid = route.params.id;
+  await baseAxios
+    .get("/warehouse/detial/getStoreInfo", { params: { hid } })
+    .then((res) => {
+      usageData.value = [];
+      res.data.result.forEach((data: { cname: string; count: number }) => {
+        const { cname, count } = data;
+        usageData.value.push({
+          name: cname,
+          value: count,
+        });
+      });
+      usageData.value.push({
+        name: "未使用",
+        value: surplusCapacity.value,
+      });
+    });
+}
+onMounted(async () => {
+  await getHouseStaffs();
+  await getCargos();
+  await getUsageCapactiy();
+  await getExistCargos();
+  await getTradingRecord();
+  await getUsageData()
+  await drawCapacityUsage(capacityUsageRef.value, usageData.value);
+  
+
+  
+});
+function openTradingModal(isPop_: boolean) {
+  isPop_
+    ? (() => {
+        tradingName.value = "货物出库";
+        tradingForm.isPop = 1;
+      })()
+    : (() => {
+        tradingName.value = "货物入库";
+        tradingForm.isPop = 0;
+      })();
+  isPop.value = isPop_;
+  tradingModal.value = true;
+}
+function onTrading() {
+  const hid = route.params.id;
+  baseAxios
+    .post("/warehouse/detial/trading", { ...tradingForm, hid })
+    .then(async (res) => {
+      message.success(res.data.message);
+      getExistCargos();
+      getTradingRecord();
+      await getUsageData();
+      await drawCapacityUsage(capacityUsageRef.value,usageData.value);
+    })
+    .catch((err) => {
+      message.error(err);
+    })
+    .finally(() => {
+      tradingModal.value = false;
+    });
+}
+function getDeliverableQuantity(cid: string) {
+  const hid = route.params.id;
+  baseAxios
+    .get("/warehouse/detial/getDeliverableQuantity", {
+      params: { cid, hid },
+    })
+    .then((res) => {
+      popQuantity.value = res.data.count;
+    })
+    .catch((err) => {
+      message.error(err);
+    });
+}
 </script>
 <template>
   <n-grid :cols="5" x-gap="15px" y-gap="15px">
@@ -491,13 +551,13 @@ function updateBaseInfo() {
                 </n-icon>
                 信息修改
               </n-button>
-              <n-button>
+              <n-button @click="openTradingModal(false)">
                 <n-icon size="20">
                   <ICInput />
                 </n-icon>
                 货物入库
               </n-button>
-              <n-button>
+              <n-button @click="openTradingModal(true)">
                 <n-icon size="20">
                   <ICOutput />
                 </n-icon>
@@ -516,18 +576,14 @@ function updateBaseInfo() {
     </n-gi>
     <n-gi span="3">
       <n-card style="height: 100%" title="仓库容量使用详情" embedded>
-        <div
-          ref="capacityUsageRef"
-          class="canvas"
-          v-if="usageData.length > 0"
-        ></div>
-        <n-space v-else justify="center" align="center" style="height: 100%">
-          <n-empty size="huge"></n-empty>
-        </n-space>
+        <div ref="capacityUsageRef" class="canvas"></div>
+        <!-- <div v-show="usageData.length === 0">
+          <n-empty></n-empty>
+        </div> -->
       </n-card>
     </n-gi>
     <n-gi span="5">
-      <n-card title="进出库记录">
+      <n-card title="当前仓库进出库记录">
         <n-space style="margin-bottom: 20px">
           <n-select
             v-model:value="tableQuery.type"
@@ -625,6 +681,79 @@ function updateBaseInfo() {
         <n-space justify="end">
           <n-button type="primary" @click="updateBaseInfo">修改</n-button>
           <n-button @click="baseInfoModal = false">取消</n-button>
+        </n-space>
+      </n-form>
+    </n-card>
+  </n-modal>
+  <n-modal v-model:show="tradingModal" @after-leave="closeTardingModal">
+    <n-card style="width: 30vw" :title="tradingName">
+      <n-form :model="tradingForm" ref="tradingFormRef">
+        <n-form-item label="物料名称">
+          <n-select
+            v-model:value="tradingForm.cid"
+            :options="materialOption"
+            placeholder="请选择物料"
+            filterable
+            label-field="cname"
+            value-field="cid"
+            v-if="!isPop"
+          />
+          <n-select
+            v-model:value="tradingForm.cid"
+            :options="existMaterialOption"
+            placeholder="请选择物料"
+            filterable
+            label-field="cname"
+            value-field="cid"
+            @update:value="getDeliverableQuantity"
+            v-else
+          />
+        </n-form-item>
+        <n-form-item label="经手人">
+          <n-select
+            v-model:value="tradingForm.handler"
+            :options="handlerOption"
+            placeholder="请选择经手人"
+            label-field="usrName"
+            value-field="uid"
+          />
+        </n-form-item>
+        <n-form-item label="物料数量">
+          <n-input-number
+            :precision="0"
+            style="width: 100%"
+            v-model:value="tradingForm.quantity"
+            :min="0"
+            :max="surplusCapacity"
+            v-if="!isPop"
+          >
+            <template #suffix>
+              <span style="color: #afb0b2">单位</span>
+            </template>
+          </n-input-number>
+          <n-input-number
+            :precision="0"
+            style="width: 100%"
+            v-model:value="tradingForm.quantity"
+            :min="0"
+            :max="popQuantity"
+            v-else
+          >
+            <template #suffix>
+              <span style="color: #afb0b2">单位</span>
+            </template>
+          </n-input-number>
+        </n-form-item>
+        <n-form-item label="备注">
+          <n-input
+            type="textarea"
+            max-length="100"
+            v-model:value="tradingForm.reamrk"
+          />
+        </n-form-item>
+        <n-space justify="end">
+          <n-button type="primary" @click="onTrading">确定</n-button>
+          <n-button @click="tradingModal = false">取消</n-button>
         </n-space>
       </n-form>
     </n-card>
