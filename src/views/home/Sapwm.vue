@@ -82,7 +82,7 @@ function changeHouseStatus(key: string) {
           label: "success",
           value: "运行中",
         };
-        hsid = 3;
+        hsid = 1;
         break;
       case "blockup":
         if (status.label === "default") return;
@@ -90,7 +90,7 @@ function changeHouseStatus(key: string) {
           label: "def",
           value: "未运行",
         };
-        hsid = 1;
+        hsid = 4;
         break;
       case "maintain":
         if (status.label === "warning") return;
