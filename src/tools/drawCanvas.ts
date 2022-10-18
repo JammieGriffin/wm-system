@@ -44,9 +44,14 @@ async function drawIOBar(el: HTMLElement, data: Array<IOdata>) {
 async function drawRoseDiagram(el: HTMLElement, data: Array<IBaseChartData>) {
   const canvas = echarts.init(el);
   canvas.setOption({
+    tooltip: {
+      trigger: "item",
+      formatter: "{b}:{c}单位",
+    },
     series: {
       type: "pie",
-      roseType: "area",
+      roseType: "radius",
+      radius: [20, 100],
       data: data,
     },
   });
