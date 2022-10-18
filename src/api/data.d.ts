@@ -65,3 +65,20 @@ export interface IWarehouseBSInfo{
   capacity: number | null;
   [key:string]: string | number | null;
 }
+export interface ITradingRecord{
+  cname:string;
+  count:number;
+  hid:string;
+  houseName:string;
+  isPop:number;
+  remark:string | null;
+  time:string;
+  usrName:string;
+}
+
+/*** console ***/
+export interface ILatestTrading{
+  date:string;
+  count:number;
+  isPop:number;
+}

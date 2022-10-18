@@ -5,52 +5,17 @@ import { IOdata, IOLogData, IBaseChartData } from "../../interface/dataModel";
 import { drawIOBar, drawRoseDiagram } from "../../tools/drawCanvas";
 import { baseAxios } from "../../const";
 import { useMessage } from "naive-ui";
+import { ILatestTrading } from "../../api/data";
 const message = useMessage();
 const statisticData = reactive({
-  warehouses: 10,
-  putIn: 100,
-  out: 88,
-  people: 30,
+  warehouses: 0,
+  putIn: 0,
+  out: 0,
+  people: 0,
 });
 const ioChartRef = ref();
 const KWordsChartRef = ref();
-const ioData: Array<IOdata> = [
-  {
-    date: "8-29",
-    in: 10,
-    out: 20,
-  },
-  {
-    date: "8-30",
-    in: 15,
-    out: 30,
-  },
-  {
-    date: "8-31",
-    in: 10,
-    out: 20,
-  },
-  {
-    date: "9-1",
-    in: 37,
-    out: 25,
-  },
-  {
-    date: "9-2",
-    in: 52,
-    out: 31,
-  },
-  {
-    date: "9-3",
-    in: 10,
-    out: 33,
-  },
-  {
-    date: "9-4",
-    in: 19,
-    out: 9,
-  },
-];
+const ioData: Array<IOdata> = [];
 const ioLogData: Array<IOLogData> = [
   {
     host: "1号仓库",
@@ -116,35 +81,62 @@ const ioLogData: Array<IOLogData> = [
     principal: "张三",
   },
 ];
-const warehouseData: Array<IBaseChartData> = [
-  {
-    name: "东区1号仓库",
-    value: 4300,
-  },
-  {
-    name: "东区2号仓库",
-    value: 1800,
-  },
-  {
-    name: "东区3号仓库",
-    value: 1960,
-  },
-  {
-    name: "西区1号仓库",
-    value: 2500,
-  },
-  {
-    name: "西区2号仓库",
-    value: 3100,
-  },
-];
-onMounted(async () => {
+const warehouseData: Array<IBaseChartData> = [];
+function loadOverviewData() {
   baseAxios
     .get("/ctrl/queryOverviewData")
-    .then((res) => {})
+    .then((res) => {
+      const { staffs, warehouses, trading } = res.data.result;
+      trading.forEach((item: { total: number; isPop: number }) => {
+        item.isPop === 1
+          ? (statisticData.out = item.total)
+          : (statisticData.putIn = item.total);
+      });
+      statisticData.people = staffs;
+      statisticData.warehouses = warehouses;
+    })
     .catch((err) => {
       message.error(err);
     });
+}
+async function loadLatestTrading() {
+  await baseAxios.get("/ctrl/getLatestTrading").then((res) => {
+    const data = res.data.result;
+    Array.from(
+      new Set(
+        data.map((item: ILatestTrading) => {
+          return item.date;
+        })
+      )
+    ).forEach((date) => {
+      const ioDataItem = {
+        date: date as string,
+        in: 0,
+        out: 0,
+      };
+      data.forEach((item: ILatestTrading) => {
+        if (item.date === date) {
+          item.isPop === 1
+            ? (ioDataItem.out += item.count)
+            : (ioDataItem.in += item.count);
+        }
+      });
+      ioData.push(ioDataItem);
+    });
+  });
+}
+async function loadCapacityUsage() {
+  await baseAxios.get("/ctrl/getCapacityUsage").then((res) => {
+    res.data.result.forEach((item: { total: number; houseName: string }) => {
+      const { total, houseName } = item;
+      warehouseData.push({ name: houseName, value: total });
+    });
+  });
+}
+onMounted(async () => {
+  loadOverviewData();
+  await loadLatestTrading();
+  await loadCapacityUsage();
   await drawIOBar(ioChartRef.value, ioData);
   await drawRoseDiagram(KWordsChartRef.value, warehouseData);
 });
