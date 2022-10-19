@@ -1,7 +1,10 @@
 import { defineStore,createPinia } from "pinia";
 import { IUsr } from "../api/data";
-export const pinia = createPinia();
-export const useUsrstore = defineStore("usr", {
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+const pinia = createPinia();
+pinia.use(piniaPluginPersistedstate);
+
+const useUsrstore = defineStore("usr", {
   state: () => {
     return {
       token: "" as string,
@@ -9,4 +12,12 @@ export const useUsrstore = defineStore("usr", {
       invalidLogin:false,
     };
   },
+  persist: {
+    storage: sessionStorage,
+    paths: ['token','usr','isvalidLogin'],
+  },
 });
+export {
+  pinia,
+  useUsrstore
+}
