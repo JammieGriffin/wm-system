@@ -36,26 +36,26 @@ export interface IMember {
 }
 
 /*** pmc ***/
-export interface ICargoType{
-  typeName:string;
-  num:number;
-  ctid:number;
+export interface ICargoType {
+  typeName: string;
+  num: number;
+  ctid: number;
 }
 
 /*** staff ***/
-export interface IStaff{
-  uid:string;
-  wno:string;
-  usrType:string;
-  sex:string;
-  usrName:string;
-  phone:string;
-  hid:string | null;
-  houseName:string | null;
+export interface IStaff {
+  uid: string;
+  wno: string;
+  usrType: string;
+  sex: string;
+  usrName: string;
+  phone: string;
+  hid: string | null;
+  houseName: string | null;
 }
 
 /*** sapwmDetial ***/
-export interface IWarehouseBSInfo{
+export interface IWarehouseBSInfo {
   houseName: string | null;
   houseAddr: string | null;
   houseArea: number | null;
@@ -63,22 +63,31 @@ export interface IWarehouseBSInfo{
   hsid: number | null;
   htid: number | null;
   capacity: number | null;
-  [key:string]: string | number | null;
+  [key: string]: string | number | null;
 }
-export interface ITradingRecord{
+export interface ITradingRecord {
+  cname: string;
+  count: number;
+  hid: string;
+  houseName: string;
+  isPop: number;
+  remark: string | null;
+  time: string;
+  usrName: string;
+}
+
+/*** console ***/
+export interface ILatestTrading {
+  date: string;
+  count: number;
+  isPop: number;
+}
+export interface ILatestTradingRecord {
   cname:string;
   count:number;
-  hid:string;
   houseName:string;
   isPop:number;
-  remark:string | null;
   time:string;
   usrName:string;
 }
 
-/*** console ***/
-export interface ILatestTrading{
-  date:string;
-  count:number;
-  isPop:number;
-}

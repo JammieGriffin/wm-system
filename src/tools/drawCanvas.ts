@@ -1,6 +1,7 @@
 import * as echarts from "echarts";
 import { IBaseChartData, IOdata } from "../interface/dataModel";
 async function drawIOBar(el: HTMLElement, data: Array<IOdata>) {
+  echarts.dispose(echarts.init(el));
   const canvas = echarts.init(el);
   const xData: Array<string> = data.map((item) => {
     return item.date;
@@ -42,6 +43,7 @@ async function drawIOBar(el: HTMLElement, data: Array<IOdata>) {
   });
 }
 async function drawRoseDiagram(el: HTMLElement, data: Array<IBaseChartData>) {
+  echarts.dispose(echarts.init(el));
   const canvas = echarts.init(el);
   canvas.setOption({
     tooltip: {
@@ -58,6 +60,7 @@ async function drawRoseDiagram(el: HTMLElement, data: Array<IBaseChartData>) {
 }
 
 async function drawCapacityUsage(el: HTMLElement, data: Array<IBaseChartData>) {
+  echarts.dispose(echarts.init(el));
   const canvas = echarts.init(el);
   canvas.setOption({
     series: [

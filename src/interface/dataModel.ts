@@ -11,6 +11,7 @@ export interface IOLogData {
   status: string;
   time: string;
   principal: string;
+  count:number;
 }
 export interface IBaseChartData {
   name: string;
