@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 
 import { FormInst, useMessage } from "naive-ui";
 import { Person, LockClosed } from "@vicons/ionicons5";
@@ -7,11 +7,11 @@ import { ILoginModel } from "../../interface/sysModel";
 import { baseAxios } from "../../const";
 import "../../scss/sys.scss";
 import { useUsrstore } from "../../store";
-import router from "../../router";
 
+import { useRouter } from "vue-router";
 const message = useMessage();
 const store = useUsrstore();
-
+const router = useRouter();
 const loginForm = ref<FormInst | null>(null);
 const loginModel = ref<ILoginModel>({
   account: null,
@@ -40,7 +40,6 @@ function onLogin(evt: MouseEvent) {
             pwd: loginModel.value.pwd,
           })
           .then((res) => {
-            console.log(res)
             if (res.data.success) {
               store.$state.token = res.data.token;
               store.$state.usr = res.data.result;
