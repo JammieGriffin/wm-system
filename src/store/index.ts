@@ -14,7 +14,7 @@ const useUsrstore = defineStore("usr", {
   },
   persist: {
     storage: sessionStorage,
-    paths: ['token','usr','isvalidLogin'],
+    paths: ['token','usr','invalidLogin'],
   },
 });
 export {
