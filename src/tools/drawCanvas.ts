@@ -77,4 +77,24 @@ async function drawCapacityUsage(el: HTMLElement, data: Array<IBaseChartData>) {
     ],
   });
 }
-export { drawIOBar, drawRoseDiagram, drawCapacityUsage };
+async function drawDistributionPie(el: HTMLElement, data: Array<IBaseChartData>){
+  echarts.dispose(echarts.init(el));
+  const canvas = echarts.init(el);
+  canvas.setOption({
+    tooltip:{
+      trigger:"item"
+    },
+    legend:{
+      orient:'vertical',
+      left:'left'
+    },
+    series:[
+      {
+        type:'pie',
+        radius:'50%',
+        data:data,
+      }
+    ]
+  })
+}
+export { drawIOBar, drawRoseDiagram, drawCapacityUsage, drawDistributionPie };

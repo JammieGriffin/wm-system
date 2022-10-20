@@ -8,18 +8,22 @@ import {
   NSpace,
   useMessage,
   FormInst,
+  useDialog,
 } from "naive-ui";
 import { h, onBeforeMount, onMounted, reactive, ref, VNode, watch } from "vue";
 import { ICargoType } from "../../api/data";
 import { baseAxios } from "../../const";
 import {
+  IBaseChartData,
   IPmcForm,
   IPmcFormOption,
   IPmcTableData,
   IPmcTableQuery,
   IPmcTagManageForm,
 } from "../../interface/dataModel";
+import { drawDistributionPie } from "../../tools/drawCanvas";
 const message = useMessage();
+const dialog = useDialog();
 const tableQuery: IPmcTableQuery = reactive({
   ctid: null,
   keyWord: null,
@@ -55,8 +59,8 @@ function loadMaterialList() {
     .then((res) => {
       if (tableData.value) tableData.value = [];
       res.data.result.forEach((cargo: any) => {
-        const { cid, cname, tags,quantity } = cargo;
-        tableData.value.push({ cid, cargoName: cname, tags,quantity });
+        const { cid, cname, tags, quantity } = cargo;
+        tableData.value.push({ cid, cargoName: cname, tags, quantity });
       });
     })
     .catch((err) => {
@@ -94,8 +98,21 @@ function onAdd() {
       addMaterialModal.value = false;
     });
 }
-
-onMounted(() => {
+// chart
+const distributeChartRef = ref();
+const distributeData = ref<Array<IBaseChartData>>([]);
+async function getDistributeData(cid: string) {
+  await baseAxios
+    .get("/pmc/getDistributeData", { params: { cid } })
+    .then((res) => {
+      distributeData.value = [];
+      res.data.result.forEach((data: { count: number; houseName: string }) => {
+        const { count, houseName } = data;
+        distributeData.value.push({ name: houseName, value: count });
+      });
+    });
+}
+onMounted(async () => {
   loadMaterialTypes();
   loadMaterialList();
 });
@@ -155,9 +172,11 @@ const addNewTag = (submit: Function, closeInput: Function) => {
 const createTableColumn = ({
   viewDestribution,
   tagsManage,
+  delMaterial,
 }: {
   viewDestribution: (rowData: IPmcTableData) => void;
   tagsManage: (rowData: IPmcTableData) => void;
+  delMaterial: (rowData: IPmcTableData) => void;
 }): DataTableColumns<IPmcTableData> => {
   return [
     {
@@ -216,14 +235,41 @@ const createTableColumn = ({
             },
             { default: () => "标签管理" }
           ),
+          h(
+            NButton,
+            {
+              text: true,
+              type: "error",
+              onClick: () => delMaterial(row),
+            },
+            { default: () => "删除物料" }
+          ),
         ]);
       },
     },
   ];
 };
+async function loadDistributeData(rowData: IPmcTableData) {
+  await getDistributeData(rowData.cid);
+  await drawDistributionPie(distributeChartRef.value, distributeData.value);
+}
+function delMaterialBycid(cid: string) {
+  baseAxios
+    .delete("/pmc/delCargo", { params: { cid } })
+    .then((res) => {
+      loadMaterialTypes();
+      loadMaterialList();
+      message.success(res.data.message);
+    })
+    .catch((err) => {
+      message.error(err);
+    });
+}
+const currentRow = ref<IPmcTableData>();
 const tableColumn = createTableColumn({
   viewDestribution(rowData: IPmcTableData) {
-    distributeModal.value=true;
+    currentRow.value = rowData;
+    distributeModal.value = true;
   },
   tagsManage(rowData: IPmcTableData) {
     tagManageModal.value = true;
@@ -234,6 +280,25 @@ const tableColumn = createTableColumn({
     });
     tagManageForm.currentTags = tags;
     tagManageForm.initalTags = tags;
+  },
+  delMaterial(rowData: IPmcTableData) {
+    if (rowData.quantity !== 0) {
+      message.error("无法删除还有库存的物料");
+      return;
+    }
+    dialog.warning({
+      title: "删除物料",
+      content:
+        "与该物料相关的出入库记录都会被删除，是否确认删除？此操作不可逆转",
+      positiveText: "确定",
+      negativeText: "取消",
+      maskClosable: false,
+      closable: false,
+      negativeButtonProps: { type: "default" },
+      onPositiveClick: () => {
+        delMaterialBycid(rowData.cid);
+      },
+    });
   },
 });
 const pagination = reactive({
@@ -287,7 +352,7 @@ function updateCargoTags() {
   }
 }
 const distributeModal = ref<boolean>(false);
-function initDistributeData(){}
+function initDistributeData() {}
 function initTagManageForm() {
   Object.keys(tagManageForm).map((key: string) => {
     if (typeof tagManageForm[key] === "string") {
@@ -298,7 +363,6 @@ function initTagManageForm() {
   });
 }
 const tableData = ref<Array<IPmcTableData>>([]);
-const distributeData = ref<Array<number>>([]);
 </script>
 <template>
   <n-grid :cols="1">
@@ -311,7 +375,7 @@ const distributeData = ref<Array<number>>([]);
             secondary
             @click="
               () => {
-                pagination.page=1;
+                pagination.page = 1;
                 loadMaterialList();
               }
             "
@@ -395,7 +459,7 @@ const distributeData = ref<Array<number>>([]);
         </n-form-item>
         <n-space justify="end">
           <n-button type="primary" @click="onAdd">添加</n-button>
-          <n-button>取消</n-button>
+          <n-button @click="addMaterialModal = false">取消</n-button>
         </n-space>
       </n-form>
     </n-card>
@@ -423,15 +487,21 @@ const distributeData = ref<Array<number>>([]);
       </n-form-item>
       <n-space justify="end">
         <n-button type="primary" @click="updateCargoTags">确定</n-button>
-        <n-button>取消</n-button>
+        <n-button @click="tagManageModal = false">取消</n-button>
       </n-space>
     </n-card>
   </n-modal>
-  <n-modal v-model:show="distributeModal" @after-leave="initDistributeData">
-    <n-card style="width:66vw" title="物料分布">
-      <n-empty v-if="distributeData.length === 0"></n-empty>
-      <div style="width:80%;height:500px" v-else></div>
-      
+  <n-modal
+    v-model:show="distributeModal"
+    @after-leave="initDistributeData"
+    @after-enter="loadDistributeData(currentRow as IPmcTableData)"
+  >
+    <n-card
+      style="width: 40vw"
+      title="物料分布"
+      content-style="display: flex;justify-content: center;"
+    >
+      <div style="width: 80%; height: 500px" ref="distributeChartRef"></div>
     </n-card>
   </n-modal>
 </template>
