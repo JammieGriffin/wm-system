@@ -95,4 +95,16 @@ const router = createRouter({
   routes,
 });
 
+router.beforeEach((to, from, next) => {
+  const token = JSON.parse(sessionStorage.getItem("usr") as string)?.token;
+
+  const publicPages = ["/login", "/register"];
+  const authRequired = !publicPages.includes(to.path);
+  if (!token && authRequired) {
+    next("/login");
+  } else {
+    next();
+  }
+});
+
 export default router;
